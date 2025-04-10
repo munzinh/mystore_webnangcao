@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 export const AppContext = createContext();
 
@@ -22,19 +22,6 @@ export const AppContextProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([])
     const [searchQuery, setSearchQuery] = useState([])
 
-    //Fetch seller status
-    const fetchSeller = async () => {
-        try {
-            const {data} = await axios.get('/api/seller/is-auth');
-            if(data.success){
-                setIsSeller(true);
-            }else{
-                setIsSeller(false);
-            }
-        } catch (error) {
-        
-        }
-    }
 
     const fetchProducts = async()=> {
         setProducts(dummyProducts)
@@ -96,13 +83,12 @@ export const AppContextProvider = ({ children }) => {
     }
 
     useEffect(() => {
-        fetchSeller()
         fetchProducts()
     },[])
 
     const value = {navigate, user, setUser, setIsSeller, isSeller, showUserLogin,
         setShowUserLogin, products, currency, addToCart, updateCartItem, removeFromCart, 
-        cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount, axios
+        cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount
     }
 
     return <AppContext.Provider value={value}>
