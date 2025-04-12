@@ -136,7 +136,7 @@ export const stripeWebhooks = async (req, res) => {
             //Mark payment as paid
             await Order.findByIdAndUpdate(orderId, {isPaid:true})
             //Clear user cart
-            await User.findByIdAndUpdate(userId, {cart: []}); 
+            await User.findByIdAndUpdate(userId, {cartItems: []}); 
             break;
         }
         case 'checkout.session.completed':{
@@ -152,7 +152,7 @@ export const stripeWebhooks = async (req, res) => {
             //Mark payment as paid
             await Order.findByIdAndUpdate(orderId, {isPaid:true})
             //Clear user cart
-            await User.findByIdAndUpdate(userId, {cart: []}); 
+            await User.findByIdAndUpdate(userId, {cartItems: []}); 
             break;
         }
 
