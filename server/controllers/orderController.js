@@ -2,6 +2,7 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import stripe from "stripe";
 import User from "../models/User.js";
+import { request } from "express";
 
 
 //Place order COD: /api/order/cod
@@ -65,7 +66,8 @@ export const placeOrderStripe = async (req, res) => {
             paymentType: 'Online',
         });
 
-//Stripe gateway Initialize
+
+    //Stripe gateway Initialize
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
     //Create line items for stripe
 
@@ -106,22 +108,38 @@ export const stripeWebhooks = async (req, res) => {
     //Stripe gateway Initialize
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
 
-    const sig = request.headers['stripe-signature'];
+    const sig = req.headers['stripe-signature'];
     let event;
 
     try {
         event = stripeInstance.webhooks.constructEvent(
-            request.body,
+            req.body, 
             sig,
             process.env.STRIPE_WEBHOOK_SECRET
         )
     } catch (error) {
-        Response.status(400).send(`Webhook Error: ${error.message}`);
+        res.status(400).send(`Webhook Error: ${error.message}`);
     }
 
     //Handle the event
     switch (event.type) {
         case 'payment_intent.succeeded':{
+            const paymentIntent = event.data.object;
+            const paymentIntentId = paymentIntent.id;
+
+            //Getting session metadata
+            const session = await stripeInstance.checkout.sessions.list({
+                payment_intent: paymentIntentId,
+            });
+
+            const { orderId, userId } = session.data[0].metadata;
+            //Mark payment as paid
+            await Order.findByIdAndUpdate(orderId, {isPaid:true})
+            //Clear user cart
+            await User.findByIdAndUpdate(userId, {cart: []}); 
+            break;
+        }
+        case 'checkout.session.completed':{
             const paymentIntent = event.data.object;
             const paymentIntentId = paymentIntent.id;
 
@@ -156,7 +174,7 @@ export const stripeWebhooks = async (req, res) => {
             console.error(`Unhandled event type ${event.type}`);
             break;
     }
-    response.json({received: true});
+    res.json({received: true});
 }
 
 
