@@ -45,7 +45,7 @@ const SellerLogin = () => {
             <input
               onChange={(e) => setEmail(e.target.value)} value={email}
               type="email"
-              placeholder="Enter your email"
+              placeholder="Nhập Email của bạn"
               className="border border-gray-200 rounded w-full p-2 mt-1 outline-none"
             />
           </div>
@@ -55,7 +55,7 @@ const SellerLogin = () => {
             <input
               onChange={(e) => setPassword(e.target.value)} value={password}
               type="password"
-              placeholder="Enter your password"
+              placeholder="Nhập mật khẩu của bạn"
               className="border border-gray-200 rounded w-full p-2 mt-1 outline-none"
             />
           </div>
@@ -64,7 +64,7 @@ const SellerLogin = () => {
             type="submit"
             className="bg-[#d70018] text-white w-full py-2 rounded-md cursor-pointer"
           >
-            Login
+            Đăng nhập
           </button>
         </div>
       </form>

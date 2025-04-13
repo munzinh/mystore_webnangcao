@@ -10,7 +10,7 @@ export const placeOrderCOD = async (req, res) => {
     try {
         const {userId, items, address} = req.body;
         if(!address || items.length === 0){
-            return res.json({success: false, message: 'Invalid data'});
+            return res.json({success: false, message: 'Dữ liệu không hợp lệ'});
         }
         // Calculate Amout Using Items
         let amount = await items.reduce(async(acc, item) => {
@@ -28,7 +28,7 @@ export const placeOrderCOD = async (req, res) => {
             address,
             paymentType: 'COD',
         })
-        return res.json({success: true, message: 'Order Placed Successfully'});
+        return res.json({success: true, message: 'Đặt hàng thành công'});
     }catch (error) {
         return res.json({success: false, message: error.message });
     }
@@ -40,7 +40,7 @@ export const placeOrderStripe = async (req, res) => {
         const {origin} = req.headers;
 
         if(!address || items.length === 0){
-            return res.json({success: false, message: 'Invalid data'});
+            return res.json({success: false, message: 'Dữ liệu không hợp lệ'});
         }
 
         let productData = []

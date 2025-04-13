@@ -17,7 +17,7 @@ export const addProduct = async (req, res) => {
         )
 
         await Product.create({...productData, image: imagesUrl})
-        res.json({success: true, message: 'Product Added'})
+        res.json({success: true, message: 'Đã thêm sản phẩm thành công'})
     } catch (error) {
         console.log(error.message);
         res.json({success: false, message: error.message });
@@ -53,7 +53,7 @@ export const changeStock = async (req, res) => {
         const {id, inStock} = req.body;
         await Product.findByIdAndUpdate(id, { inStock });
 
-        res.json({success: true, message: 'Stock Updated'});
+        res.json({success: true, message: 'Đã cập nhật tồn kho'});
     } catch (error) {
         console.log(error.message);
         res.json({success: false, message: error.message });

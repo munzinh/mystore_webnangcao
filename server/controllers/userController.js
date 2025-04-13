@@ -8,13 +8,13 @@ export const register = async (req, res)=>{
         const {name,email,password} = req.body;
 
         if(!name || !email || !password){
-            return res.json({success: false, message: 'Missing Details'})
+            return res.json({success: false, message: 'Thiếu thông tin'})
         }
 
         const existingUser = await User.findOne({email})
 
         if(existingUser)
-            return res.json({success: false, message: 'User already Details'})
+            return res.json({success: false, message: 'Người dùng đã tồn tại'})
 
         const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -43,16 +43,16 @@ export const login = async (req, res)=>{
         const {email,password}= req.body;
         
         if (!email || !password)
-            return res.json({success: false, message: 'Email and password are required'});
+            return res.json({success: false, message: 'Email và mật khẩu là bắt buộc'});
         const user = await User.findOne({email});
         if(!user){
-            return res.json({success:false,message: 'Invalid email or password'});
+            return res.json({success:false,message: 'Email hoặc mật khẩu không hợp lệ'});
         }
 
         const isMatch = await bcrypt.compare(password, user.password)
 
         if(!isMatch)
-            return res.json({success:false,message: 'Invalid email or password'});
+            return res.json({success:false,message: 'Email hoặc mật khẩu không hợp lệ'});
 
         const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, {expiresIn:'7d'});
 
@@ -93,7 +93,7 @@ export const logout = async(req,res)=>{
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none':'strict',
         });
-        return res.json({success: true, message: "Logged Out"})
+        return res.json({success: true, message: "Đã đăng xuất"})
     } catch (error) {
         console.log(error.message);
         res.json({success: false, message: error.message });
