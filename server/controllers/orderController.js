@@ -8,7 +8,8 @@ import { request } from "express";
 //Place order COD: /api/order/cod
 export const placeOrderCOD = async (req, res) => {
     try {
-        const {userId, items, address} = req.body;
+        const { items, address } = req.body;
+        const userId = req.userId;
         if(!address || items.length === 0){
             return res.json({success: false, message: 'Dữ liệu không hợp lệ'});
         }
@@ -36,7 +37,8 @@ export const placeOrderCOD = async (req, res) => {
 //Place order Stripe: /api/order/stripe
 export const placeOrderStripe = async (req, res) => {
     try {
-        const {userId, items, address} = req.body;
+        const { items, address } = req.body;
+        const userId = req.userId;
         const {origin} = req.headers;
 
         if(!address || items.length === 0){
