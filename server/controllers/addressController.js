@@ -3,8 +3,11 @@ import Address from "../models/Address.js";
 // Thêm địa chỉ: /api/address/add
 export const addAddress = async (req, res) => {
     try {
-        const {address, userId} = req.body;
-        await Address.create({...address, userId});
+        const { address } = req.body;
+        
+        const userId = req.userId;
+
+        await Address.create({ ...address, userId });
         res.json({success: true, message: 'Đã thêm địa chỉ thành công'});
     } catch (error) {
         console.log(error.message);
