@@ -1,38 +1,69 @@
-import React, { useEffect, useState } from 'react'
-import { useAppContext } from '../context/AppContext'
-import ProductCard from '../components/ProductCard'
+import React, { useEffect, useState } from 'react';
+import { useAppContext } from '../context/AppContext';
+import ProductFilter from '../components/ProductFilter';
+import ProductGrid from '../components/ProductGrid';
+import { filterAndSortProducts } from '../utils/filterUtils';
+import { categories } from '../assets/assets';
 
 const AllProduct = () => {
 
-    const { products, searchQuery } = useAppContext()
-    const [filteredProducts, setFilteredProducts] = useState([])
+    const { products, searchQuery } = useAppContext();
+    const [filteredProducts, setFilteredProducts] = useState([]);
+
+    // Filter State
+    const [filters, setFilters] = useState({
+        category: 'all',
+        price: '',
+        rating: 0,
+    });
+
+    // Sort State
+    const [sort, setSort] = useState('newest');
+
+    const clearFilters = () => {
+        setFilters({ category: 'all', price: '', rating: 0 });
+        setSort('newest');
+    };
 
     useEffect(() => {
-        if (searchQuery.length > 0) {
-            setFilteredProducts(products.filter(
+        // First filter by search query
+        let result = products || [];
+        if (searchQuery && searchQuery.length > 0) {
+            result = result.filter(
                 product => product.name.toLowerCase().includes(searchQuery.toLowerCase())
-            ))
-        } else {
-            setFilteredProducts(products)
+            );
         }
-    }, [products, searchQuery])
+
+        // Then apply categories, filters & sorting
+        result = filterAndSortProducts(result, filters.category, filters, sort);
+
+        // Filter out out-of-stock items
+        result = result.filter(product => product.inStock);
+
+        setFilteredProducts(result);
+
+    }, [products, searchQuery, filters, sort]);
 
     return (
-        <div className='mt-16 flex flex-col max-w-7xl mx-auto'>
-            <div className='flex flex-col items-end w-max'>
+        <div className='mt-16 flex flex-col max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+            <div className='flex flex-col items-end w-max mb-6'>
                 <p className='text-2xl font-medium uppercase'>Tất cả sản phẩm</p>
-                <div className='w-16 h-0.5 bg-[#d70018] rounded-full'></div>
+                <div className='w-16 h-0.5 bg-[#d70018] rounded-full mt-1'></div>
             </div>
 
-            <div className='max-w-7xl mt-6'>
-                <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-6 lg:grid-cols-5'>
-                    {filteredProducts.filter((product) => product.inStock).map((product, index) => (
-                        <ProductCard key={index} product={product} />
-                    ))}
-                </div>
-            </div>
+            <ProductFilter
+                filters={filters}
+                setFilters={setFilters}
+                sort={sort}
+                setSort={setSort}
+                clearFilters={clearFilters}
+                categories={categories}
+                isAllProducts={true}
+            />
+
+            <ProductGrid products={filteredProducts} />
         </div>
     )
 }
 
-export default AllProduct
+export default AllProduct;

@@ -20,7 +20,7 @@ import box_icon from "./box_icon.svg";
 import trust_icon from "./trust_icon.svg";
 import black_arrow_icon from "./black_arrow_icon.svg";
 import white_arrow_icon from "./white_arrow_icon.svg";
-import main_banner_bg from "./main_banner_bg.png";
+import main_banner_bg from "./main_banner_bg.jpg";
 import main_banner_bg_sm from "./main_banner_bg_sm.png";
 import add_address_iamge from "./add_address_image.svg";
 import iphone_16_pro_max from "./iphone-16-pro-max.png";
@@ -106,7 +106,7 @@ export const assets = {
 export const categories = [
   {
     text: "Điện thoại, Tablet",
-    path: "mobile",
+    path: "Mobile",
     image: iphone_16_pro_max,
     bgColor: "#ffffff",
   },
@@ -117,19 +117,19 @@ export const categories = [
     bgColor: "#ffffff",
   },
   {
-    text: "Âm thanh, Mic thu âm",
+    text: "Âm thanh",
     path: "Âm thanh",
     image: airpods_4,
     bgColor: "#ffffff",
   },
   {
-    text: "Đồng hồ, Cammera",
+    text: "Đồng hồ",
     path: "Đồng hồ",
     image: dong_ho,
     bgColor: "#ffffff",
   },
   {
-    text: "Dồ gia dụng",
+    text: "Đồ gia dụng",
     path: "Đồ gia dụng",
     image: do_gia_dung,
     bgColor: "#ffffff",

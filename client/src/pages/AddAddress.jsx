@@ -17,7 +17,7 @@ const InputField = ({ type, placeholder, name, handlechange, address }) => (
 
 const AddAddress = () => {
 
-const {axios,user, navigate}= useAppContext();
+  const { axios, user, navigate } = useAppContext();
 
   const [address, setAddress] = useState({
     firstname: '',
@@ -43,12 +43,12 @@ const {axios,user, navigate}= useAppContext();
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try {
-      const {data} = await axios.post('/api/address/add',{address, userId: user._id});
+      const { data } = await axios.post('/api/address/add', { address, userId: user._id });
 
-      if(data.success){
+      if (data.success) {
         toast.success(data.message)
         navigate('/cart')
-      }else{
+      } else {
         toast.error(data.message)
       }
     } catch (error) {
@@ -56,11 +56,11 @@ const {axios,user, navigate}= useAppContext();
     }
   }
 
-  useEffect(() =>{
-    if(!user){
+  useEffect(() => {
+    if (!user) {
       navigate('/cart')
     }
-  },[])
+  }, [])
 
   return (
     <div className='mt-16 px-4'>
@@ -72,24 +72,24 @@ const {axios,user, navigate}= useAppContext();
           <div className='flex max-w-wd w-full'>
             <form onSubmit={onSubmitHandler} className='space-y-3 mt-6 text-sm w-full'>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <InputField handlechange={handlechange} address={address} name='firstname' type='text' placeholder="First Name" />
-                <InputField handlechange={handlechange} address={address} name='lastname' type='text' placeholder="Last Name" />
+                <InputField handlechange={handlechange} address={address} name='firstname' type='text' placeholder="Họ" />
+                <InputField handlechange={handlechange} address={address} name='lastname' type='text' placeholder="Tên" />
               </div>
 
               <InputField handlechange={handlechange} address={address} name='email' type='email' placeholder="Email" />
-              <InputField handlechange={handlechange} address={address} name='street' type='text' placeholder="Street" />
+              <InputField handlechange={handlechange} address={address} name='street' type='text' placeholder="Số nhà, tên đường" />
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <InputField handlechange={handlechange} address={address} name='city' type='text' placeholder="City" />
-                <InputField handlechange={handlechange} address={address} name='state' type='text' placeholder="State" />
+                <InputField handlechange={handlechange} address={address} name='city' type='text' placeholder="Thành phố" />
+                <InputField handlechange={handlechange} address={address} name='state' type='text' placeholder="Tỉnh / Quận" />
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <InputField handlechange={handlechange} address={address} name='zipcode' type='number' placeholder="Zip code" />
-                <InputField handlechange={handlechange} address={address} name='country' type='text' placeholder="Country" />
+                <InputField handlechange={handlechange} address={address} name='zipcode' type='number' placeholder="Mã bưu chính" />
+                <InputField handlechange={handlechange} address={address} name='country' type='text' placeholder="Quốc gia" />
               </div>
 
-              <InputField handlechange={handlechange} address={address} name='phone' type='number' placeholder="Phone" />
+              <InputField handlechange={handlechange} address={address} name='phone' type='number' placeholder="Số điện thoại" />
 
               <button className='w-full mt-6 bg-[#d70018] text-white py-3 hover:bg-[#d70018]/80 transition cursor-pointer uppercase'>
                 Lưu

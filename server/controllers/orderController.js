@@ -2,7 +2,25 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import stripe from "stripe";
 import User from "../models/User.js";
+import UserBehavior from "../models/UserBehavior.js";
 import { request } from "express";
+
+// Helper: ghi purchase events vào UserBehavior
+const trackPurchaseEvents = async (userId, items) => {
+    try {
+        const events = items.map(item => ({
+            userId,
+            productId: item.product,
+            eventType: 'purchase',
+            weight: 3.0,
+            timestamp: new Date(),
+        }));
+        await UserBehavior.insertMany(events);
+    } catch (err) {
+        console.log('Behavior track error:', err.message);
+    }
+};
+
 
 
 //Place order COD: /api/order/cod
@@ -10,14 +28,14 @@ export const placeOrderCOD = async (req, res) => {
     try {
         const { items, address } = req.body;
         const userId = req.userId;
-        if(!address || items.length === 0){
-            return res.json({success: false, message: 'Dữ liệu không hợp lệ'});
+        if (!address || items.length === 0) {
+            return res.json({ success: false, message: 'Dữ liệu không hợp lệ' });
         }
         // Calculate Amout Using Items
-        let amount = await items.reduce(async(acc, item) => {
+        let amount = await items.reduce(async (acc, item) => {
             const product = await Product.findById(item.product);
             return (await acc + (product.offerPrice * item.quantity));
-    }, 0)
+        }, 0)
 
         // Add Tax charge (2%)
         amount += Math.floor(amount * 0.02);
@@ -29,9 +47,11 @@ export const placeOrderCOD = async (req, res) => {
             address,
             paymentType: 'COD',
         })
-        return res.json({success: true, message: 'Đặt hàng thành công'});
-    }catch (error) {
-        return res.json({success: false, message: error.message });
+        // Track purchase behavior
+        await trackPurchaseEvents(userId, items);
+        return res.json({ success: true, message: 'Đặt hàng thành công' });
+    } catch (error) {
+        return res.json({ success: false, message: error.message });
     }
 }
 //Place order Stripe: /api/order/stripe
@@ -39,15 +59,15 @@ export const placeOrderStripe = async (req, res) => {
     try {
         const { items, address } = req.body;
         const userId = req.userId;
-        const {origin} = req.headers;
+        const { origin } = req.headers;
 
-        if(!address || items.length === 0){
-            return res.json({success: false, message: 'Dữ liệu không hợp lệ'});
+        if (!address || items.length === 0) {
+            return res.json({ success: false, message: 'Dữ liệu không hợp lệ' });
         }
 
         let productData = []
         // Calculate Amout Using Items
-        let amount = await items.reduce(async(acc, item) => {
+        let amount = await items.reduce(async (acc, item) => {
             const product = await Product.findById(item.product);
             productData.push({
                 name: product.name,
@@ -55,12 +75,12 @@ export const placeOrderStripe = async (req, res) => {
                 quantity: item.quantity,
             });
             return (await acc + (product.offerPrice * item.quantity));
-    }, 0)
+        }, 0)
 
         // Add Tax charge (2%)
         amount += Math.floor(amount * 0.02);
 
-        const order =await Order.create({
+        const order = await Order.create({
             userId,
             items,
             amount,
@@ -69,39 +89,39 @@ export const placeOrderStripe = async (req, res) => {
         });
 
 
-    //Stripe gateway Initialize
-    const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
-    //Create line items for stripe
+        //Stripe gateway Initialize
+        const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
+        //Create line items for stripe
 
-    const line_items = productData.map((item)=>{
-        return{
-            price_data:{
-                currency: 'usd',
-                product_data:{
-                    name: item.name,
+        const line_items = productData.map((item) => {
+            return {
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: item.name,
+                    },
+                    unit_amount: Math.floor((item.price + item.price * 0.02) / 24700 * 100)
                 },
-                unit_amount: Math.floor((item.price + item.price * 0.02) / 24700 * 100)
-            },
-            quantity: item.quantity,
-        }
-    })
+                quantity: item.quantity,
+            }
+        })
 
-    //create session
-    const session = await stripeInstance.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items,
-        mode: 'payment',
-        success_url: `${origin}/loader?next=my-orders`,
-        cancel_url: `${origin}/cart`,
-        metadata:{
-            orderId: order._id.toString(),
-            userId,
-        }
-    })
+        //create session
+        const session = await stripeInstance.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items,
+            mode: 'payment',
+            success_url: `${origin}/loader?next=my-orders`,
+            cancel_url: `${origin}/cart`,
+            metadata: {
+                orderId: order._id.toString(),
+                userId,
+            }
+        })
 
-        return res.json({success: true, url: session.url});
-    }catch (error) {
-        return res.json({success: false, message: error.message });
+        return res.json({ success: true, url: session.url });
+    } catch (error) {
+        return res.json({ success: false, message: error.message });
     }
 }
 
@@ -115,7 +135,7 @@ export const stripeWebhooks = async (req, res) => {
 
     try {
         event = stripeInstance.webhooks.constructEvent(
-            req.body, 
+            req.body,
             sig,
             process.env.STRIPE_WEBHOOK_SECRET
         )
@@ -125,7 +145,7 @@ export const stripeWebhooks = async (req, res) => {
 
     //Handle the event
     switch (event.type) {
-        case 'payment_intent.succeeded':{
+        case 'payment_intent.succeeded': {
             const paymentIntent = event.data.object;
             const paymentIntentId = paymentIntent.id;
 
@@ -136,12 +156,15 @@ export const stripeWebhooks = async (req, res) => {
 
             const { orderId, userId } = session.data[0].metadata;
             //Mark payment as paid
-            await Order.findByIdAndUpdate(orderId, {isPaid:true})
+            await Order.findByIdAndUpdate(orderId, { isPaid: true })
             //Clear user cart
-            await User.findByIdAndUpdate(userId, {cartItems: []}); 
+            await User.findByIdAndUpdate(userId, { cartItems: [] });
+            // Track purchase behavior
+            const order = await Order.findById(orderId);
+            if (order) await trackPurchaseEvents(userId, order.items);
             break;
         }
-        case 'checkout.session.completed':{
+        case 'checkout.session.completed': {
             const paymentIntent = event.data.object;
             const paymentIntentId = paymentIntent.id;
 
@@ -152,13 +175,13 @@ export const stripeWebhooks = async (req, res) => {
 
             const { orderId, userId } = session.data[0].metadata;
             //Mark payment as paid
-            await Order.findByIdAndUpdate(orderId, {isPaid:true})
+            await Order.findByIdAndUpdate(orderId, { isPaid: true })
             //Clear user cart
-            await User.findByIdAndUpdate(userId, {cartItems: []}); 
+            await User.findByIdAndUpdate(userId, { cartItems: [] });
             break;
         }
 
-        case 'payment_intent.payment_failed':{
+        case 'payment_intent.payment_failed': {
             const paymentIntent = event.data.object;
             const paymentIntentId = paymentIntent.id;
 
@@ -171,12 +194,12 @@ export const stripeWebhooks = async (req, res) => {
             await Order.findByIdAndDelete(orderId);
             break;
         }
-    
+
         default:
             console.error(`Unhandled event type ${event.type}`);
             break;
     }
-    res.json({received: true});
+    res.json({ received: true });
 }
 
 
@@ -187,11 +210,11 @@ export const getUserOrders = async (req, res) => {
         const userId = req.userId;
         const orders = await Order.find({
             userId,
-            $or: [{paymentType: 'COD'}, {isPaid: true}]
-        }).populate("items.product address").sort({createdAt: -1});
-        res.json({success: true, orders});
+            $or: [{ paymentType: 'COD' }, { isPaid: true }]
+        }).populate("items.product address").sort({ createdAt: -1 });
+        res.json({ success: true, orders });
     } catch (error) {
-        res.json({success: false, message: error.message });
+        res.json({ success: false, message: error.message });
     }
 }
 
@@ -201,10 +224,10 @@ export const getUserOrders = async (req, res) => {
 export const getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find({
-            $or: [{paymentType: 'COD'}, {isPaid: true}]
+            $or: [{ paymentType: 'COD' }, { isPaid: true }]
         }).populate("items.product address");
-        res.json({success: true, orders});
+        res.json({ success: true, orders });
     } catch (error) {
-        res.json({success: false, message: error.message });
+        res.json({ success: false, message: error.message });
     }
 }

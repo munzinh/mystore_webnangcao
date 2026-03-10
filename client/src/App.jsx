@@ -7,7 +7,7 @@ import Footer from './components/Footer';
 import { useAppContext } from './context/AppContext';
 import Login from './components/Login';
 import AllProduct from './pages/AllProduct';
-import ProductCategory from './pages/ProductCategory';
+import CategoryPage from './pages/CategoryPage';
 import ProductDetails from './pages/ProductDetails';
 import Cart from './pages/Cart';
 import AddAddress from './pages/AddAddress';
@@ -18,6 +18,10 @@ import AddProduct from './pages/seller/AddProduct';
 import ProductList from './pages/seller/ProductList';
 import Orders from './pages/seller/Orders';
 import Loading from './components/Loading';
+import OnlinePaymentPolicy from './pages/OnlinePaymentPolicy';
+import DeliveryPolicy from './pages/DeliveryPolicy';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import WarrantyPolicy from './pages/WarrantyPolicy';
 
 const App = () => {
     const isSellerPath = useLocation().pathname.includes("seller");
@@ -32,12 +36,16 @@ const App = () => {
                 <Routes>
                     <Route path='/' element={<Home />} />
                     <Route path='/products' element={<AllProduct />} />
-                    <Route path='/products/:category' element={<ProductCategory />} />
+                    <Route path='/products/:category' element={<CategoryPage />} />
                     <Route path='/products/:category/:id' element={<ProductDetails />} />
                     <Route path='/cart' element={<Cart />} />
                     <Route path='/add-address' element={<AddAddress />} />
                     <Route path='/my-orders' element={<MyOrders />} />
                     <Route path='/loader' element={<Loading />} />
+                    <Route path='/online-payment-policy' element={<OnlinePaymentPolicy />} />
+                    <Route path='/delivery-policy' element={<DeliveryPolicy />} />
+                    <Route path='/privacy-policy' element={<PrivacyPolicy />} />
+                    <Route path='/warranty-policy' element={<WarrantyPolicy />} />
                     <Route path='/seller' element={isSeller ? <SellerLayout /> : <SellerLogin />}>
                         <Route index element={<AddProduct />} />
                         <Route path='product-list' element={<ProductList />} />

@@ -1,16 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Roboto:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @import "tailwindcss";
 
-*{
-  font-family: "Outfit", sans-serif;
+html {
+  font-size: 16px;
+  line-height: 1.5;
 }
 
-@theme {
-  --color--primary: #4fbf8b;
-  --color--primary-50: #44ae7c;
+html,
+body,
+*,
+*::before,
+*::after {
+  font-family: "Inter", sans-serif;
+  box-sizing: border-box;
 }
 
-.no-scollbar {
+body {
+  -webkit-font-smoothing: antialiased;
+  color: #1a1a1a;
+}
+
+.no-scrollbar::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }

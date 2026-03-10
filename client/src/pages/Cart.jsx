@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { assets, dummyAddress } from "../assets/assets";
 import toast from "react-hot-toast";
+import RecommendationSection from "../components/RecommendationSection";
 
 const Cart = () => {
     const { products, currency, cartItems, removeFromCart, getCartCount, updateCartItem, navigate, getCartAmount, axios, user, setCartItems } = useAppContext();
@@ -10,12 +11,14 @@ const Cart = () => {
     const [showAddress, setShowAddress] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [paymentOption, setPaymentOption] = useState("COD");
+    const [boughtTogether, setBoughtTogether] = useState([]);
+    const [boughtLoading, setBoughtLoading] = useState(false);
 
     // Hàm định dạng tiền tệ VND
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
-    
+
     // Tạo giỏ hàng từ cartItems và sản phẩm
     const getCart = () => {
         let temArray = [];
@@ -31,20 +34,20 @@ const Cart = () => {
 
     const getUserAddress = async () => {
         try {
-            const {data} = await axios.get('/api/address/get')
-            if(data.success){
+            const { data } = await axios.get('/api/address/get')
+            if (data.success) {
                 setAddresses(data.addresses);
-                if(data.addresses.length > 0){
+                if (data.addresses.length > 0) {
                     setSelectedAddress(data.addresses[0]);
                 }
-            }else{
+            } else {
                 toast.error(data.message)
             }
         } catch (error) {
             toast.error(error.message)
         }
     }
-    
+
     // Xử lý đặt hàng
     const placeOrder = async () => {
         try {
@@ -53,33 +56,33 @@ const Cart = () => {
             }
 
             //Place Order with COD
-            if(paymentOption === "COD"){
-                const {data}= await axios.post('/api/order/cod',{
+            if (paymentOption === "COD") {
+                const { data } = await axios.post('/api/order/cod', {
                     userId: user._id,
-                    items: cartArray.map(item=> ({product: item._id, quantity: item.quantity})),
+                    items: cartArray.map(item => ({ product: item._id, quantity: item.quantity })),
                     address: selectedAddress._id
                 })
-                if(data.success){
+                if (data.success) {
                     toast.success(data.message);
                     setCartItems({});
                     navigate('/my-orders')
-                }else{
-                toast.error(data.message)
+                } else {
+                    toast.error(data.message)
                 }
-            }else{
+            } else {
                 //Place Order with stripe
-                if(paymentOption === "Online"){
-                    const {data}= await axios.post('/api/order/stripe',{
+                if (paymentOption === "Online") {
+                    const { data } = await axios.post('/api/order/stripe', {
                         userId: user._id,
-                        items: cartArray.map(item=> ({product: item._id, quantity: item.quantity})),
+                        items: cartArray.map(item => ({ product: item._id, quantity: item.quantity })),
                         address: selectedAddress._id
                     })
-                    if(data.success){
+                    if (data.success) {
                         window.location.replace(data.url)
-                    }else{
-                    toast.error(data.message)
+                    } else {
+                        toast.error(data.message)
                     }
-               }
+                }
             }
         } catch (error) {
             toast.error(error.message)
@@ -95,10 +98,33 @@ const Cart = () => {
 
 
     useEffect(() => {
-        if(user){
+        if (user) {
             getUserAddress();
         }
-    },[user])
+    }, [user])
+
+    // Fetch "Frequently Bought Together" dựa trên sản phẩm đầu tiên trong giỏ hàng
+    useEffect(() => {
+        const firstCartItem = Object.keys(cartItems)[0];
+        if (!firstCartItem) return;
+
+        const fetchBoughtTogether = async () => {
+            setBoughtLoading(true);
+            try {
+                const { data } = await axios.get(`/api/recommendations/bought-together/${firstCartItem}`);
+                if (data.success && data.recommendations?.length) {
+                    // Loại bỏ sản phẩm đã trong giỏ hàng
+                    const cartIds = new Set(Object.keys(cartItems));
+                    setBoughtTogether(data.recommendations.filter(p => !cartIds.has(p._id)));
+                }
+            } catch (err) {
+                console.log(err);
+            } finally {
+                setBoughtLoading(false);
+            }
+        };
+        fetchBoughtTogether();
+    }, [cartItems]);
 
     return products.length > 0 && cartItems ? (
         <div className="flex flex-col md:flex-row mt-16 mx-auto max-w-screen-xl px-4">
@@ -116,8 +142,8 @@ const Cart = () => {
                 {cartArray.map((product, index) => (
                     <div key={index} className="grid grid-cols-[2fr_1fr_1fr] text-gray-500 items-center text-sm md:text-base font-medium pt-3">
                         <div className="flex items-center md:gap-6 gap-3">
-                            <div onClick={() => { navigate(`/products/${product.category.toLowerCase()}/${product._id}`); scrollTo(0, 0); }} 
-                            className="cursor-pointer w-24 h-24 flex items-center justify-center border border-gray-300 rounded">
+                            <div onClick={() => { navigate(`/products/${product.category.toLowerCase()}/${product._id}`); scrollTo(0, 0); }}
+                                className="cursor-pointer w-24 h-24 flex items-center justify-center border border-gray-300 rounded">
                                 <img className="max-w-full h-full object-cover" src={product.image[0]} alt={product.name} />
                             </div>
                             <div>
@@ -139,15 +165,26 @@ const Cart = () => {
                         </div>
                         <p className="text-center text-[#d70018]">{formatCurrency(product.offerPrice * product.quantity)}</p>
                         <button onClick={() => removeFromCart(product._id)} className="cursor-pointer mx-auto">
-                            <img src={assets.remove_icon} alt="remove" className="inline-block w-6 h-6"/>
+                            <img src={assets.remove_icon} alt="remove" className="inline-block w-6 h-6" />
                         </button>
                     </div>
                 ))}
 
                 <button onClick={() => { navigate("/products"); }} className="group cursor-pointer flex items-center mt-8 gap-2 text-[#d70018] font-medium">
-                    <img className="group-hover:-translate-x-1 transition" src={assets.arrow_right_icon_colored} alt="arrow"/>
+                    <img className="group-hover:-translate-x-1 transition" src={assets.arrow_right_icon_colored} alt="arrow" />
                     Tiếp tục mua hàng
                 </button>
+
+                {/* Thường mua cùng nhau */}
+                <RecommendationSection
+                    title="Thường mua cùng nhau"
+                    subtitle="Khách hàng thường mua các sản phẩm này cùng lúc"
+                    products={boughtTogether}
+                    loading={boughtLoading}
+                    badge="Bundle"
+                    badgeColor="bg-green-100 text-green-600"
+                    maxItems={5}
+                />
 
             </div>
 
@@ -158,7 +195,7 @@ const Cart = () => {
                 <div className="mb-6">
                     <p className="text-sm font-medium uppercase">Địa chỉ giao hàng</p>
                     <div className="relative flex justify-between items-start mt-2">
-                        <p className="text-gray-500">{selectedAddress ? `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country}` : "No address found"}</p>
+                        <p className="text-gray-500">{selectedAddress ? `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state}, ${selectedAddress.country}` : "Chưa có địa chỉ"}</p>
                         <button onClick={() => setShowAddress(!showAddress)} className="text-[#d70018] hover:underline cursor-pointer">
                             Thay đổi
                         </button>
@@ -170,7 +207,7 @@ const Cart = () => {
                                     </p>
                                 ))}
                                 <p onClick={() => navigate("/add-address")} className="text-[#d70018] text-center cursor-pointer p-2 hover:text-[#a7091a]">
-                                    Add address
+                                    Thêm địa chỉ mới
                                 </p>
                             </div>
                         )}

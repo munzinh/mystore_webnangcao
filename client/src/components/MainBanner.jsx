@@ -13,51 +13,76 @@ import {
   MdArticle,
 } from 'react-icons/md';
 
+import { useNavigate } from 'react-router-dom';
+
 const MainBanner = () => {
+  const navigate = useNavigate();
+
+  const handleCategoryClick = (path) => {
+    navigate(`/products/${path.toLowerCase()}`);
+    window.scrollTo(0, 0);
+  };
+
   return (
-    <div className="flex flex-col md:flex-row gap-5 max-w-[1280px] mx-auto px-2">
-      
+    <div className="flex flex-col lg:flex-row gap-5 max-w-[1280px] mx-auto px-2 lg:h-[320px]">
+
       {/* Cột trái: Menu danh mục sản phẩm */}
-      <div className="hidden lg:block w-[225px] bg-white rounded shadow mb-0 pt-0">
-        <ul className="space-y-2 text-sm font-medium text-gray-700">
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdSmartphone size={24} />Điện thoại, Tablet</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdLaptop size={24} />Laptop</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdHeadphones size={24} />Âm thanh, Mic thu âm</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdWatch size={24} />Đồng hồ, Camera</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdHome size={24} />Đồ gia dụng</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdCable size={24} />Phụ kiện</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdComputer size={24} />PC, Màn hình, Máy in</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdTv size={24} />Tivi</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdAutorenew size={24} />Thu cũ đổi mới</li>
-          <li className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition mb-0">
-            <MdArticle size={24} />Tin công nghệ</li>
+      <div className="hidden lg:flex flex-col w-[200px] bg-white rounded shadow p-2 h-full">
+        <ul className="flex flex-col justify-between h-full text-sm font-medium text-gray-700">
+          <li
+            onClick={() => handleCategoryClick('Mobile')}
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition"
+          >
+            <MdSmartphone size={24} /> Điện thoại, Tablet
+          </li>
+          <li
+            onClick={() => handleCategoryClick('Laptop')}
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition"
+          >
+            <MdLaptop size={24} /> Laptop
+          </li>
+          <li
+            onClick={() => handleCategoryClick('Âm thanh')}
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition"
+          >
+            <MdHeadphones size={24} /> Âm thanh, Mic thu âm
+          </li>
+          <li
+            onClick={() => handleCategoryClick('Đồng hồ')}
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition"
+          >
+            <MdWatch size={24} /> Đồng hồ, Camera
+          </li>
+          <li
+            onClick={() => handleCategoryClick('Đồ gia dụng')}
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition"
+          >
+            <MdHome size={24} /> Đồ gia dụng
+          </li>
+          <li
+            onClick={() => handleCategoryClick('Tivi')}
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition"
+          >
+            <MdTv size={24} /> Tivi
+          </li>
+          <li
+            onClick={() => handleCategoryClick('Màn hình')}
+            className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-[#f3f4f6] hover:text-[#d70018] transition"
+          >
+            <MdComputer size={24} /> Màn hình
+          </li>
         </ul>
       </div>
 
       {/* Banner chính ở giữa */}
-      <div className="flex-1 relative">
-        <img 
-          src={assets.main_banner_bg} 
-          alt="banner" 
-          className="w-full h-auto rounded-lg shadow object-cover"
+      <div className="flex-1 h-full">
+        <img
+          src={assets.main_banner_bg}
+          alt="banner"
+          className="w-full h-full rounded shadow object-cover"
         />
       </div>
 
-      {/* Cột phải: Các banner phụ */}
-      <div className="hidden md:flex flex-col gap-4 w-[230px]">
-        <img src={assets.bn_m55_5g} alt="Side Banner 1" className="w-full rounded shadow"/>
-        <img src={assets.bn_mb_m4} alt="Side Banner 2" className="w-full rounded shadow"/>
-        <img src={assets.s_student} alt="Side Banner 3" className="w-full rounded shadow"/>
-      </div>
     </div>
   );
 };

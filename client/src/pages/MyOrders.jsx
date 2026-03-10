@@ -3,14 +3,14 @@ import { useAppContext } from '../context/AppContext';
 import { dummyOrders } from '../assets/assets';
 
 const MyOrders = () => {
-  
+
   const [myOrders, setMyOrders] = useState([]);
   const { currency, axios, user } = useAppContext();
 
   const fetchMyOrders = async () => {
     try {
-      const {data} = await axios.get('/api/order/user')
-      if(data.success){
+      const { data } = await axios.get('/api/order/user')
+      if (data.success) {
         setMyOrders(data.orders);
       }
     } catch (error) {
@@ -19,10 +19,10 @@ const MyOrders = () => {
   }
 
   useEffect(() => {
-    if(user){
+    if (user) {
       fetchMyOrders();
     }
-    
+
   }, [user]);
 
   const formatCurrency = (amount) => {
@@ -45,7 +45,7 @@ const MyOrders = () => {
           className="border border-gray-300 rounded-lg p-4 py-5 mb-10"
         >
           <p className="flex justify-between md:items-center text-gray-400 md:font-medium max-md:flex-col gap-2">
-            <span>OrderId: {order._id}</span>
+            <span>Mã đơn: #{order._id.slice(-8).toUpperCase()}</span>
             <span>Thanh toán: {order.paymentType}</span>
             <span>Tổng tiền: {formatCurrency(order.amount)}</span>
           </p>
@@ -53,9 +53,8 @@ const MyOrders = () => {
           {order.items.map((item, idx) => (
             <div
               key={idx}
-              className={`relative bg-white text-gray-500/70 ${
-                order.items.length !== idx + 1 ? 'border-b' : ''
-              } border-gray-300 flex flex-col md:flex-row md:items-center justify-between p-4 py-5 md:gap-16 w-full`}
+              className={`relative bg-white text-gray-500/70 ${order.items.length !== idx + 1 ? 'border-b' : ''
+                } border-gray-300 flex flex-col md:flex-row md:items-center justify-between p-4 py-5 md:gap-16 w-full`}
             >
               <div className="flex items-center mb-4 md:mb-0">
                 <div className="bg-primary/10 p-4 rounded-lg">
@@ -80,7 +79,7 @@ const MyOrders = () => {
               </div>
 
               <p className="text-primary text-lg font-medium">
-                Amount: {formatCurrency(item.product.offerPrice * item.quantity)}
+                Thành tiền: {formatCurrency(item.product.offerPrice * item.quantity)}
               </p>
             </div>
           ))}
