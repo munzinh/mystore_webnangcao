@@ -1,4 +1,4 @@
-Chạy cả backend và frontend bằng lập
+Chạy cả backend và frontend bằng
 backend -> npm run dev
 frontend -> npm run server
 ----------------------------------------------------
@@ -9,4 +9,3 @@ https://mystore-webnangcao.vercel.app/seller
 Tài khoản của seller:
 tài khoản: admin@example.com
 Mật khẩu: greatstack123
-z
