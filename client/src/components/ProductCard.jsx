@@ -3,22 +3,31 @@ import { assets } from '../assets/assets';
 import { useAppContext } from '../context/AppContext';
 import { FaShoppingCart } from "react-icons/fa";
 
+// Lấy giá thấp nhất từ variants, fallback về global
+const getMinPrice = (product, field) => {
+    if (product.variants && product.variants.length > 0) {
+        const vals = product.variants.map(v => v[field]).filter(p => p > 0);
+        if (vals.length > 0) return Math.min(...vals);
+    }
+    return product[field] || 0;
+};
+
 const ProductCard = ({ product }) => {
     const { addToCart, removeFromCart, cartItems, navigate } = useAppContext();
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND',
-        }).format(amount);
-    };
+    const formatCurrency = (amount) =>
+        new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
-    const calculateDiscount = (price, offerPrice) => {
-        if (!price || !offerPrice || price <= offerPrice) return 0;
-        return Math.round(((price - offerPrice) / price) * 100);
-    };
+    const hasVariants  = product.variants && product.variants.length > 0;
+    const variantCount = hasVariants ? product.variants.length : 0;
 
-    const discountPercent = calculateDiscount(product.price, product.offerPrice);
+    // Giá hiển thị — lấy từ variants nếu có
+    const displayOfferPrice = getMinPrice(product, 'offerPrice');
+    const displayPrice      = getMinPrice(product, 'price');
+
+    const discountPercent = displayPrice > displayOfferPrice
+        ? Math.round(((displayPrice - displayOfferPrice) / displayPrice) * 100)
+        : 0;
 
     return product && (
         <div
@@ -26,7 +35,7 @@ const ProductCard = ({ product }) => {
                 navigate(`/products/${product.category.toLowerCase()}/${product._id}`);
                 scrollTo(0, 0);
             }}
-            className="relative border border-gray-300 rounded-md p-3 bg-white w-full hover:shadow-md transition overflow-hidden flex flex-col h-full"
+            className="relative border border-gray-300 rounded-md p-3 bg-white w-full hover:shadow-md transition overflow-hidden flex flex-col h-full cursor-pointer"
         >
             {/* Tag giảm giá */}
             {discountPercent > 0 && (
@@ -35,34 +44,54 @@ const ProductCard = ({ product }) => {
                 </div>
             )}
 
+            {/* Badge số biến thể */}
+            {variantCount > 1 && (
+                <div className="absolute top-0 right-0 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg z-10">
+                    {variantCount} tuỳ chọn
+                </div>
+            )}
+
             {/* Hình ảnh */}
-            <div className="group cursor-pointer flex items-center justify-center h-32 mb-3 mt-2">
-                <img className="group-hover:scale-105 transition h-full object-contain" src={product.image[0]} alt={product.name} />
+            <div className="group flex items-center justify-center h-32 mb-3 mt-2">
+                <img
+                    className="group-hover:scale-105 transition h-full object-contain"
+                    src={product.image[0]}
+                    alt={product.name}
+                />
             </div>
 
-            {/* Thông tin sản phẩm */}
+            {/* Thông tin */}
             <div className="text-gray-500/70 text-sm flex flex-col gap-1 flex-grow">
-                <p className="truncate">{product.category}</p>
+                {/* Category + Brand */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-xs truncate">{product.category}</p>
+                    {product.brand && (
+                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0 rounded">
+                            {product.brand}
+                        </span>
+                    )}
+                </div>
+
                 <p className="text-gray-800 font-semibold text-base truncate">{product.name}</p>
 
                 {/* Giá */}
                 <div className="flex flex-col mt-1">
                     <p className="text-lg font-semibold text-[#d70018] leading-tight">
-                        {formatCurrency(product.offerPrice)}
+                        {hasVariants ? 'Từ ' : ''}{formatCurrency(displayOfferPrice)}
                     </p>
                     <p className="text-gray-500/60 text-sm line-through leading-tight">
-                        {product.price > product.offerPrice ? formatCurrency(product.price) : '\u00A0'}
+                        {displayPrice > displayOfferPrice ? formatCurrency(displayPrice) : '\u00A0'}
                     </p>
                 </div>
 
-                {/* Đánh giá và nút Add */}
+                {/* Rating + Nút thêm giỏ hàng */}
                 <div className="flex items-center justify-between mt-auto pt-2">
-                    {/* Đánh giá sao động */}
+                    {/* Stars */}
                     <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((star) => {
-                            const avg = product.avgRating || 0;
+                            const avg    = product.avgRating || 0;
                             const filled = avg >= star;
-                            const half = !filled && avg >= star - 0.5;
+                            const half   = !filled && avg >= star - 0.5;
                             const gradId = `hg-${product._id}-${star}`;
                             return (
                                 <svg key={star} className="w-3.5 h-3.5" viewBox="0 0 20 20">
@@ -87,11 +116,8 @@ const ProductCard = ({ product }) => {
                         </p>
                     </div>
 
-                    {/* Nút Thêm/giảm */}
-                    <div
-                        onClick={(e) => { e.stopPropagation(); }}
-                        className="text-[#d70018] text-sm"
-                    >
+                    {/* Add to cart */}
+                    <div onClick={(e) => e.stopPropagation()} className="text-[#d70018] text-sm">
                         {!cartItems[product._id] ? (
                             <button
                                 onClick={() => addToCart(product._id)}
@@ -102,7 +128,7 @@ const ProductCard = ({ product }) => {
                             </button>
                         ) : (
                             <div className="flex items-center justify-center gap-2 w-[70px] h-[30px] bg-[#d70018]/25 rounded select-none">
-                                <button onClick={() => removeFromCart(product._id)} className="px-1">-</button>
+                                <button onClick={() => removeFromCart(product._id)} className="px-1">−</button>
                                 <span>{cartItems[product._id]}</span>
                                 <button onClick={() => addToCart(product._id)} className="px-1">+</button>
                             </div>
