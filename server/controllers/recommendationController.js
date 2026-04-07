@@ -2,6 +2,7 @@ import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import UserBehavior from "../models/UserBehavior.js";
 import Recommendation from "../models/Recommendation.js";
+import mongoose from "mongoose";
 import axios from "axios";
 import pkg from 'natural';
 const { TfIdf } = pkg;
@@ -11,6 +12,7 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
 
 // ─────────────────────────────────────────────────────────
 // Helper: Content-based fallback (Node.js TF-IDF)
+// Đồng nhất với productController: dùng brand, category, tags, price range
 // ─────────────────────────────────────────────────────────
 const contentBasedFallback = async (productId, topN = 8) => {
     const products = await Product.find({ inStock: true });
@@ -18,7 +20,12 @@ const contentBasedFallback = async (productId, topN = 8) => {
 
     const documents = products.map(p => {
         const descText = Array.isArray(p.description) ? p.description.join(' ') : String(p.description);
-        return `${p.name} ${p.category} ${descText} ${p.price}`;
+        const tagsText = Array.isArray(p.tags) ? p.tags.join(' ') : '';
+        const priceRange = p.offerPrice < 5000000 ? 'gia_re' :
+                           p.offerPrice < 15000000 ? 'gia_trung' :
+                           p.offerPrice < 30000000 ? 'gia_cao' : 'gia_cao_cap';
+        // Kết hợp đầy đủ: name + category + brand + tags + description + price range
+        return `${p.name} ${p.category} ${p.brand || ''} ${tagsText} ${descText} ${priceRange}`;
     });
     documents.forEach(doc => tfidf.addDocument(doc));
 
@@ -39,7 +46,11 @@ const contentBasedFallback = async (productId, topN = 8) => {
         sim: similarity.cosine(vectors[targetIndex], vec)
     }));
     sims.sort((a, b) => b.sim - a.sim);
-    return sims.slice(1, topN + 1).map(s => products[s.idx]);
+    // Bỏ qua bản thân (idx === targetIndex), lấy top N
+    return sims
+        .filter(s => s.idx !== targetIndex)
+        .slice(0, topN)
+        .map(s => products[s.idx]);
 };
 
 // Helper: Gọi Python ML service
@@ -176,8 +187,16 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
         const { productId } = req.params;
 
         // Tìm các đơn hàng có chứa sản phẩm này
+        // Convert sang ObjectId để match đúng type (sau khi model đổi từ String → ObjectId)
+        let productObjId;
+        try {
+            productObjId = new mongoose.Types.ObjectId(productId);
+        } catch {
+            return res.json({ success: false, message: 'productId không hợp lệ', recommendations: [] });
+        }
+
         const orders = await Order.find({
-            'items.product': productId,
+            'items.product': productObjId,
             $or: [{ paymentType: 'COD' }, { isPaid: true }],
         }).select('items');
 

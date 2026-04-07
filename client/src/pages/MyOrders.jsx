@@ -79,7 +79,8 @@ const MyOrders = () => {
               </div>
 
               <p className="text-primary text-lg font-medium">
-                Thành tiền: {formatCurrency(item.product.offerPrice * item.quantity)}
+                {/* Ưu tiên price_at_purchase (giá chốt lúc mua), fallback về offerPrice hiện tại */}
+                Thành tiền: {formatCurrency((item.price_at_purchase || item.product?.offerPrice || 0) * item.quantity)}
               </p>
             </div>
           ))}

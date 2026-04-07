@@ -20,11 +20,11 @@ export const filterAndSortProducts = (products, category, filters, sort) => {
         });
     }
 
-    // Filter by rating (assuming dummyProducts have no rating, defaulting to 4 in UI)
+    // Filter by rating - only show products that have been rated AND meet the threshold
     if (filters.rating > 0) {
         result = result.filter(p => {
-            const rating = p.rating || 4; // default fake rating
-            return rating >= filters.rating;
+            const rating = p.avgRating || 0;
+            return rating > 0 && rating === filters.rating;
         });
     }
 
@@ -40,7 +40,7 @@ export const filterAndSortProducts = (products, category, filters, sort) => {
             result.sort((a, b) => (b.sold || 0) - (a.sold || 0)); // Assuming 'sold' field might exist
             break;
         case 'top_rated':
-            result.sort((a, b) => (b.rating || 4) - (a.rating || 4));
+            result.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
             break;
         case 'newest':
             result.sort((a, b) => {

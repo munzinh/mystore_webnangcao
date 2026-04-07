@@ -1,9 +1,9 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import Address from "../models/Address.js";
 import stripe from "stripe";
 import User from "../models/User.js";
 import UserBehavior from "../models/UserBehavior.js";
-import { request } from "express";
 
 // Helper: ghi purchase events vào UserBehavior
 const trackPurchaseEvents = async (userId, items) => {
@@ -21,7 +21,24 @@ const trackPurchaseEvents = async (userId, items) => {
     }
 };
 
-
+// Helper: lấy snapshot địa chỉ từ Address document
+const getAddressSnapshot = async (addressId) => {
+    try {
+        const addr = await Address.findById(addressId);
+        if (!addr) return {};
+        return {
+            name: `${addr.firstname} ${addr.lastname}`.trim(),
+            phone: addr.phone,
+            street: addr.street,
+            city: addr.city,
+            state: addr.state,
+            zipcode: String(addr.zipcode),
+            country: addr.country,
+        };
+    } catch {
+        return {};
+    }
+};
 
 //Place order COD: /api/order/cod
 export const placeOrderCOD = async (req, res) => {
@@ -31,22 +48,33 @@ export const placeOrderCOD = async (req, res) => {
         if (!address || items.length === 0) {
             return res.json({ success: false, message: 'Dữ liệu không hợp lệ' });
         }
-        // Calculate Amout Using Items
-        let amount = await items.reduce(async (acc, item) => {
+
+        // Tính tiền VÀ lưu price_at_purchase cho từng item
+        let amount = 0;
+        const itemsWithPrice = await Promise.all(items.map(async (item) => {
             const product = await Product.findById(item.product);
-            return (await acc + (product.offerPrice * item.quantity));
-        }, 0)
+            const unitPrice = product.offerPrice;
+            amount += unitPrice * item.quantity;
+            return {
+                ...item,
+                price_at_purchase: unitPrice,   // Chốt giá tại thời điểm đặt
+            };
+        }));
 
         // Add Tax charge (2%)
         amount += Math.floor(amount * 0.02);
 
+        // Snapshot địa chỉ giao hàng
+        const shippingAddress = await getAddressSnapshot(address);
+
         await Order.create({
             userId,
-            items,
+            items: itemsWithPrice,
             amount,
             address,
+            shippingAddress,
             paymentType: 'COD',
-        })
+        });
         // Track purchase behavior
         await trackPurchaseEvents(userId, items);
         return res.json({ success: true, message: 'Đặt hàng thành công' });
@@ -54,6 +82,7 @@ export const placeOrderCOD = async (req, res) => {
         return res.json({ success: false, message: error.message });
     }
 }
+
 //Place order Stripe: /api/order/stripe
 export const placeOrderStripe = async (req, res) => {
     try {
@@ -65,26 +94,37 @@ export const placeOrderStripe = async (req, res) => {
             return res.json({ success: false, message: 'Dữ liệu không hợp lệ' });
         }
 
-        let productData = []
-        // Calculate Amout Using Items
-        let amount = await items.reduce(async (acc, item) => {
+        let productData = [];
+        let amount = 0;
+
+        // Tính tiền VÀ lưu price_at_purchase cho từng item
+        const itemsWithPrice = await Promise.all(items.map(async (item) => {
             const product = await Product.findById(item.product);
+            const unitPrice = product.offerPrice;
+            amount += unitPrice * item.quantity;
             productData.push({
                 name: product.name,
-                price: product.offerPrice,
+                price: unitPrice,
                 quantity: item.quantity,
             });
-            return (await acc + (product.offerPrice * item.quantity));
-        }, 0)
+            return {
+                ...item,
+                price_at_purchase: unitPrice,   // Chốt giá tại thời điểm đặt
+            };
+        }));
 
         // Add Tax charge (2%)
         amount += Math.floor(amount * 0.02);
 
+        // Snapshot địa chỉ giao hàng
+        const shippingAddress = await getAddressSnapshot(address);
+
         const order = await Order.create({
             userId,
-            items,
+            items: itemsWithPrice,
             amount,
             address,
+            shippingAddress,
             paymentType: 'Online',
         });
 
@@ -211,7 +251,9 @@ export const getUserOrders = async (req, res) => {
         const orders = await Order.find({
             userId,
             $or: [{ paymentType: 'COD' }, { isPaid: true }]
-        }).populate("items.product address").sort({ createdAt: -1 });
+        })
+        .populate('items.product', 'name image price offerPrice brand category') // Chỉ lấy các field cần thiết
+        .sort({ createdAt: -1 });
         res.json({ success: true, orders });
     } catch (error) {
         res.json({ success: false, message: error.message });
@@ -219,13 +261,14 @@ export const getUserOrders = async (req, res) => {
 }
 
 
-//Get all orders (for seller / amdmin)  : /api/order/seller
-
+//Get all orders (for seller / admin): /api/order/seller
 export const getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find({
             $or: [{ paymentType: 'COD' }, { isPaid: true }]
-        }).populate("items.product address");
+        })
+        .populate('items.product', 'name image price offerPrice brand category')
+        .sort({ createdAt: -1 });
         res.json({ success: true, orders });
     } catch (error) {
         res.json({ success: false, message: error.message });

@@ -50,12 +50,23 @@ export const productById = async (req, res) => {
     }
 }
 
-// Change Product inStock: /api/product/stock 
+// Change Product inStock (global): /api/product/stock
+// Body: { id, inStock } — toggle inStock fallback
+// Body: { id, variantIndex, inStock } — cập nhật tồn kho biến thể cụ thể
 export const changeStock = async (req, res) => {
     try {
-        const { id, inStock } = req.body;
-        await Product.findByIdAndUpdate(id, { inStock });
+        const { id, inStock, variantIndex, variantStock } = req.body;
 
+        // Nếu có variantIndex → cập nhật tồn kho của biến thể cụ thể
+        if (typeof variantIndex === 'number' && typeof variantStock === 'number') {
+            await Product.findByIdAndUpdate(id, {
+                [`variants.${variantIndex}.inStock`]: variantStock
+            });
+            return res.json({ success: true, message: 'Cập nhật tồn kho biến thể thành công' });
+        }
+
+        // Fallback: update inStock boolean toàn bộ sản phẩm
+        await Product.findByIdAndUpdate(id, { inStock });
         res.json({ success: true, message: 'Đã cập nhật tồn kho' });
     } catch (error) {
         console.log(error.message);
@@ -108,13 +119,25 @@ export const deleteProduct = async (req, res) => {
     }
 }
 
-// Recommend Products: /api/product/recommend
+// Recommend Products (Content-based): /api/product/recommend
+// Gợi ý sản phẩm tương tự dựa trên TF-IDF kết hợp category, brand, tags
 export const recommendProducts = async (req, res) => {
     try {
         const { id } = req.body;
         const products = await Product.find({});
         const tfidf = new TfIdf();
-        const documents = products.map(p => p.description + ' ' + p.price.toString());
+
+        // Xây dựng document phong phú hơn cho đồ điện tử:
+        // kết hợp description + brand + category + tags + price range
+        const documents = products.map(p => {
+            const descText = Array.isArray(p.description) ? p.description.join(' ') : p.description;
+            const tagsText = Array.isArray(p.tags) ? p.tags.join(' ') : '';
+            const priceRange = p.offerPrice < 5000000 ? 'gia_re' :
+                               p.offerPrice < 15000000 ? 'gia_trung' :
+                               p.offerPrice < 30000000 ? 'gia_cao' : 'gia_cao_cap';
+            return `${descText} ${p.brand} ${p.category} ${tagsText} ${priceRange}`;
+        });
+
         documents.forEach(doc => tfidf.addDocument(doc));
 
         const allTerms = new Set();
@@ -127,12 +150,63 @@ export const recommendProducts = async (req, res) => {
             const vector = termList.map(term => tfidf.tfidf(term, i));
             vectors.push(vector);
         }
+
         const targetIndex = products.findIndex(p => p._id.toString() === id);
-        if (targetIndex === -1) return res.json({ success: false, message: 'Product not found' });
-        const similarities = vectors.map((vec, idx) => ({ idx, sim: similarity.cosine(vectors[targetIndex], vec) }));
+        if (targetIndex === -1) return res.json({ success: false, message: 'Không tìm thấy sản phẩm' });
+
+        const similarities = vectors.map((vec, idx) => ({
+            idx,
+            sim: similarity.cosine(vectors[targetIndex], vec)
+        }));
         similarities.sort((a, b) => b.sim - a.sim);
-        const top = similarities.slice(1, 6).map(s => products[s.idx]);
+
+        // Lấy top 5 sản phẩm tương tự (bỏ qua chính nó)
+        const top = similarities
+            .filter(s => s.idx !== targetIndex)
+            .slice(0, 5)
+            .map(s => products[s.idx]);
+
         res.json({ success: true, recommendations: top });
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message });
+    }
+}
+
+// Search Products: /api/product/search
+// Dùng MongoDB text index để tìm kiếm nhanh theo name, brand, tags
+export const searchProducts = async (req, res) => {
+    try {
+        const { q, category, brand, minPrice, maxPrice, inStock } = req.query;
+
+        let filter = {};
+
+        // Full-text search nếu có query string
+        if (q) {
+            filter.$text = { $search: q };
+        }
+
+        // Lọc theo category nếu có
+        if (category) filter.category = category;
+
+        // Lọc theo brand nếu có
+        if (brand) filter.brand = brand;
+
+        // Lọc theo khoảng giá
+        if (minPrice || maxPrice) {
+            filter.offerPrice = {};
+            if (minPrice) filter.offerPrice.$gte = Number(minPrice);
+            if (maxPrice) filter.offerPrice.$lte = Number(maxPrice);
+        }
+
+        // Lọc còn hàng
+        if (inStock === 'true') filter.inStock = true;
+
+        const products = await Product.find(filter)
+            .sort(q ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
+            .limit(20);
+
+        res.json({ success: true, products });
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message });

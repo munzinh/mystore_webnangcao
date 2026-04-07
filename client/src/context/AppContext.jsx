@@ -1,4 +1,4 @@
-import { children, createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
