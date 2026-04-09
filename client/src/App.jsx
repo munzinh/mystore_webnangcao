@@ -22,6 +22,7 @@ import OnlinePaymentPolicy from './pages/OnlinePaymentPolicy';
 import DeliveryPolicy from './pages/DeliveryPolicy';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import WarrantyPolicy from './pages/WarrantyPolicy';
+import ScrollToTop from './components/ScrollToTop';
 
 const App = () => {
     const isSellerPath = useLocation().pathname.includes("seller");
@@ -54,8 +55,13 @@ const App = () => {
                 </Routes>
             </div>
             {!isSellerPath && <Footer />}
+
+            {/* Đặt nút cuộn lên đầu trang ở đây để nó xuất hiện trên toàn bộ ứng dụng */}
+            <ScrollToTop />
         </div>
+        
     );
 };
+
 
 export default App;
