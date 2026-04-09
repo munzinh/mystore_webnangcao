@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import MainBanner from '../components/MainBanner';
 import Categories from '../components/Categories';
 import BestSeller from '../components/BestSeller';
+import Marquee from "../components/Marquee";
 import RecommendationSection from '../components/RecommendationSection';
 import { useAppContext } from '../context/AppContext';
 
@@ -48,36 +49,47 @@ const Home = () => {
   }, [user]);
 
   return (
-    <div className="flex justify-center px-4 mt-4">
-      <div className="w-full max-w-screen-xl px-1 justify-center items-center">
-        <MainBanner />
-        <Categories />
-        <BestSeller />
+  <div className="flex justify-center px-4 mt-4">
+    <div className="w-full max-w-screen-xl px-1">
 
-        {/* Gợi ý cá nhân hoá - chỉ hiển thị khi đăng nhập */}
-        {user && (
-          <RecommendationSection
-            title="Dành riêng cho bạn"
-            subtitle="Dựa trên lịch sử duyệt và mua hàng của bạn"
-            products={forYouProducts}
-            loading={forYouLoading}
-            badge="AI Powered"
-            badgeColor="bg-blue-100 text-blue-600"
-          />
-        )}
+      <Marquee />
 
-        {/* Trending Products */}
-        <RecommendationSection
-          title="Sản phẩm nổi bật"
-          subtitle="Được nhiều người quan tâm nhất tuần này"
-          products={trendingProducts}
-          loading={trendingLoading}
-          badge=""
-          badgeColor="bg-orange-100 text-orange-600"
-        />
+      {/* 👇 layout ngang */}
+      <div className="home-top flex gap-4">
+        <div className="w-1/4">
+          <Categories />
+        </div>
+
+        <div className="w-3/4">
+          <MainBanner />
+        </div>
       </div>
+
+      <BestSeller />
+
+      {user && (
+        <RecommendationSection
+          title="Dành riêng cho bạn"
+          subtitle="Dựa trên lịch sử duyệt và mua hàng của bạn"
+          products={forYouProducts}
+          loading={forYouLoading}
+          badge="AI Powered"
+          badgeColor="bg-blue-100 text-blue-600"
+        />
+      )}
+
+      <RecommendationSection
+        title="Sản phẩm nổi bật"
+        subtitle="Được nhiều người quan tâm nhất tuần này"
+        products={trendingProducts}
+        loading={trendingLoading}
+        badge=""
+        badgeColor="bg-orange-100 text-orange-600"
+      />
+
     </div>
-  );
+  </div>
+);
 };
 
-export default Home;
+export default Home

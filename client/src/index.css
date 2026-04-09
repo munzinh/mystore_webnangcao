@@ -33,3 +33,29 @@ body {
   scrollbar-width: none;
   /* Firefox */
 }
+.banner {
+  width: 100%;
+  height: 380px; /* 👈 cố định chiều cao */
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  display: inline-block;
+  animation: marquee 15s linear infinite;
+}
