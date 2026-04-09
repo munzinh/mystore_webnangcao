@@ -6,20 +6,23 @@ const Categories = () => {
   const navigate = useNavigate();
 
   return (
-    <div className='mt-16'>
-      <p className='text-2xl md:text-3xl font-medium'>Phân loại</p>
-      <div className='flex flex-col mt-4 gap-2'>
-
+    /* Bỏ: bg-white, border, rounded-lg, shadow-sm. 
+       Chỉ giữ lại: p-4 (để nội dung không sát lề) và kích thước. */
+    <div className='p-4 w-full md:w-[280px] shrink-0'>
+      <p className='text-xl font-bold mb-4 border-b pb-2'>Phân loại</p>
+      
+      <div className='flex flex-col gap-1'>
         {categories.map((category, index) => (
           <div
             key={index}
-            className='group cursor-pointer px-3 py-2 rounded-md flex items-center gap-3 hover:bg-gray-100 transition'
+            /* Cập nhật class hover: chỉ đổi màu chữ và nền nhẹ, không bóng đổ */
+            className='group cursor-pointer px-3 py-2.5 rounded-md flex items-center gap-3 hover:bg-orange-50 hover:text-orange-600 transition-all'
             onClick={() => {
               navigate(`/products/${category.path.toLowerCase()}`);
-              scrollTo(0, 0);
+              window.scrollTo(0, 0);
             }}
           >
-            <img src={category.image} alt="" className='w-6 h-6 object-contain' />
+            <img src={category.image} alt="" className='w-5 h-5 object-contain group-hover:scale-110 transition' />
             <p className='text-sm font-medium'>{category.text}</p>
           </div>
         ))}
