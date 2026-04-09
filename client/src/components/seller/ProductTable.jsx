@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Helper: lấy giá thấp nhất từ variants (hoặc fallback giá global)
+// Helper với schema mới: variants có attributes Map + variantLabel
 const getDisplayPrice = (product, field) => {
     if (product.variants && product.variants.length > 0) {
         const prices = product.variants.map(v => v[field]).filter(p => p > 0);
@@ -9,13 +9,18 @@ const getDisplayPrice = (product, field) => {
     return product[field] || 0;
 };
 
-// Helper: tổng tồn kho
 const getTotalStock = (product) => {
     if (product.variants && product.variants.length > 0) {
         return product.variants.reduce((s, v) => s + Number(v.inStock || 0), 0);
     }
     return product.inStock ? 1 : 0;
 };
+
+// Lấy labels từ variantLabel hoặc tự ghép từ attributes
+const getVariantLabels = (variants = []) =>
+    variants.slice(0, 3).map(v =>
+        v.variantLabel || Object.values(v.attributes || {}).filter(Boolean).join(' - ')
+    ).filter(Boolean);
 
 const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
     const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n);
@@ -80,12 +85,21 @@ const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
                                         {product.category}
                                     </td>
 
-                                    {/* Biến thể badge */}
+                                    {/* Biến thể badge + tooltip */}
                                     <td className="px-4 py-3">
                                         {hasVariants ? (
-                                            <span className="inline-block text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                                                {varCount} biến thể
-                                            </span>
+                                            <div className="group relative">
+                                                <span className="inline-block text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full cursor-help">
+                                                    {varCount} biến thể
+                                                </span>
+                                                {/* Tooltip hiện ví dụ labels */}
+                                                <div className="hidden group-hover:block absolute z-20 left-0 top-6 bg-gray-800 text-white text-xs rounded px-2 py-1.5 whitespace-nowrap shadow-lg">
+                                                    {getVariantLabels(product.variants).map((l, i) => (
+                                                        <div key={i}>• {l}</div>
+                                                    ))}
+                                                    {varCount > 3 && <div className="text-gray-400">+{varCount - 3} biến thể nữa...</div>}
+                                                </div>
+                                            </div>
                                         ) : (
                                             <span className="text-xs text-gray-400">—</span>
                                         )}
