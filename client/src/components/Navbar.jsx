@@ -36,23 +36,23 @@ const Navbar = () => {
         <nav className="bg-[#d70018] border-b border-gray-300 shadow-md sticky top-0 z-2000">
             <div className="w-full max-w-[1280px] mx-auto py-4 px-2 grid grid-cols-12 items-center">
                 {/* Logo */}
-                <div className="col-span-6 md:col-span-3">
+                <div className="col-span-2">
                     <NavLink to='/' onClick={() => setOpen(false)} className="text-2xl font-bold text-white">
                         MyStore
                     </NavLink>
                 </div>
 
                 {/* Desktop Menu */}
-                <div className="hidden md:flex col-span-6 justify-center items-center gap-6 text-white">
+                <div className="col-span-3 hidden md:flex justify-center gap-6">
                     <NavLink to='/' className="hover:underline">Trang chủ</NavLink>
                     <NavLink to='/products' className="hover:underline">Tất cả sản phẩm</NavLink>
                     <NavLink to='/contact' className="hover:underline">Liên hệ</NavLink>
                 </div>
 
                 {/* Search + Cart + Login */}
-                <div className="hidden md:flex col-span-3 justify-end items-center gap-4 text-white">
+                <div className="col-span-7 flex items-center gap-4">
                     {/* Search */}
-                    <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-200 px-3 rounded-full bg-white">
+                    <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-200 px-4 rounded-full bg-white flex-1">
                         <input
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="py-1.5 w-full bg-transparent outline-none placeholder-gray-500 text-black"
