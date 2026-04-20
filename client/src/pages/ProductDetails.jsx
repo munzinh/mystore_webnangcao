@@ -16,12 +16,36 @@ const ProductDetails = () => {
     const [thumbnail, setThumbnail] = useState(null);
     const [avgRating, setAvgRating] = useState(0);
     const [totalReviews, setTotalReviews] = useState(0);
+    const [selectedColor, setSelectedColor] = useState(null);
+    const [selectedStorage, setSelectedStorage] = useState(null);
 
     const product = products.find((item) => item._id === id);
 
     const formatVND = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
+
+    const variantData = {
+        colors: [
+            { name: "Đen" },
+            { name: "Trắng" },
+            { name: "Xanh" }
+        ],
+        storage: [
+            { size: "128GB", price: product?.offerPrice },
+            { size: "256GB", price: product?.offerPrice + 1000000 },
+            { size: "512GB", price: product?.offerPrice + 3000000 }
+        ]
+    };
+
+    useEffect(() => { 
+        if (variantData.colors.length > 0) {
+             setSelectedColor(variantData.colors[0]);
+        } 
+        if (variantData.storage.length > 0) {
+             setSelectedStorage(variantData.storage[0]);
+        }
+    }, [product]);
 
     useEffect(() => {
         if (id) {
@@ -75,12 +99,13 @@ const ProductDetails = () => {
 
                 {/* Product Detail */}
                 <div className="flex flex-col md:flex-row gap-10 mt-4">
+                    {/* IMAGE */}
                     <div className="flex gap-3">
                         {/* Thumbnails */}
                         <div className="flex flex-col gap-3">
                             {product.image.map((image, index) => (
                                 <div key={index} onClick={() => setThumbnail(image)} className="border max-w-24 border-gray-300 rounded overflow-hidden cursor-pointer">
-                                    <img src={image} alt={`Thumbnail ${index + 1}`} />
+                                    <img src={image} alt={``} />
                                 </div>
                             ))}
                         </div>
@@ -105,19 +130,47 @@ const ProductDetails = () => {
                             <p className="text-sm ml-2 text-gray-500">{avgRating > 0 ? `${avgRating}/5 (${totalReviews} đánh giá)` : 'Chưa có đánh giá'}</p>
                         </div>
 
+                        {/* PRICE */}
                         <div className="mt-6">
                             <p className="text-gray-500/70 line-through">Giá gốc:{formatVND(product.price)}</p>
-                            <p className="text-2xl font-medium">Giá ưu đãi: <span className="text-[#d70018]">{formatVND(product.offerPrice)}</span></p>
+                            <p className="text-2xl font-medium">
+                                Giá ưu đãi: 
+                                <span className="text-[#d70018]">
+                                    {formatVND(selectedStorage?.price || product.offerPrice)}
+                                </span>
+                                </p>
                             <span className="text-gray-500/70">(Đã bao gồm phí VAT)</span>
                         </div>
 
+                        {/* COLOR */} 
+                        <div className="mt-6"> 
+                            <p className="font-medium mb-2">Màu sắc:</p> 
+                            <div className="flex gap-3"> {variantData.colors.map((color, index) => 
+                                ( <button key={index} onClick={() => setSelectedColor(color)} 
+                                className={`px-4 py-2 border rounded-full ${selectedColor?.name === color.name ? 
+                                "border-[#d70018] bg-red-50 text-[#d70018]" : "border-gray-300"}`} > {color.name} </button> ))} 
+                            </div> 
+                        </div>
+
+                        {/* STORAGE */} 
+                        <div className="mt-4"> 
+                            <p className="font-medium mb-2">Dung lượng:</p> 
+                            <div className="flex gap-3"> {variantData.storage.map((item, index) => 
+                                ( <button key={index} onClick={() => setSelectedStorage(item)} 
+                                className={`px-4 py-2 border rounded-lg ${selectedStorage?.size === item.size ? 
+                                "border-[#d70018] bg-red-50 text-[#d70018]" : "border-gray-300"}`} > {item.size} </button> ))} 
+                            </div> 
+                        </div>
+
+                        {/* DESCRIPTION */}
                         <p className="text-base font-medium mt-6">Mô tả</p>
                         <ul className="list-disc ml-4 text-gray-500/70">
                             {product.description.map((desc, index) => (
-                                <li key={index}>{desc}</li>
+                                <li key={index}>{desc}</li> 
                             ))}
                         </ul>
-
+                        
+                        {/* Buttons */}
                         <div className="flex flex-col sm:flex-row items-center mt-10 gap-4 text-base">
                             <button
                                 onClick={() => addToCart(product._id)}

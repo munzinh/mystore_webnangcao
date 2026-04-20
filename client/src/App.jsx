@@ -23,6 +23,7 @@ import DeliveryPolicy from './pages/DeliveryPolicy';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import WarrantyPolicy from './pages/WarrantyPolicy';
 import ScrollToTop from './components/ScrollToTop';
+import ProductDetail from './components/ProductOptions';
 
 const App = () => {
     const isSellerPath = useLocation().pathname.includes("seller");
