@@ -14,7 +14,7 @@ const ProductList = () => {
         if (products.length === 0) {
             fetchProducts();
         }
-    }, [])
+    }, [fetchProducts])
 
     // Filter & Sort State
     const [searchQuery, setSearchQuery] = useState('');

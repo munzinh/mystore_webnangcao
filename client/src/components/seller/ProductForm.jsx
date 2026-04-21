@@ -207,7 +207,12 @@ const ProductForm = ({ initialData, onSubmit, loading, onCancel }) => {
                         </label>
                     ))}
                 </div>
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-1.5 mt-2 inline-block">
+                    💡 <strong>Lưu ý thứ tự ảnh:</strong> Ảnh 1 → Biến thể 1, Ảnh 2 → Biến thể 2, ...
+                    Upload ảnh đúng thứ tự để khách hàng thấy đúng ảnh khi chọn phiên bản.
+                </p>
             </div>
+
 
             {/* ── Tên + Danh mục + Brand + Tags ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

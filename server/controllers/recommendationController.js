@@ -1,7 +1,6 @@
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import UserBehavior from "../models/UserBehavior.js";
-import Recommendation from "../models/Recommendation.js";
 import mongoose from "mongoose";
 import axios from "axios";
 import pkg from 'natural';
@@ -81,7 +80,7 @@ export const getSimilarProducts = async (req, res) => {
         const recommendations = await contentBasedFallback(productId);
         return res.json({ success: true, recommendations, source: 'fallback' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -123,7 +122,7 @@ export const getUserRecommendations = async (req, res) => {
 
         return res.json({ success: true, recommendations: filtered, source: 'fallback_cb' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -173,7 +172,7 @@ export const getTrendingProducts = async (req, res) => {
             .limit(12);
         return res.json({ success: true, recommendations: latestProducts, source: 'latest' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -234,7 +233,7 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
 
         return res.json({ success: true, recommendations: products, source: 'co_occurrence' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };
