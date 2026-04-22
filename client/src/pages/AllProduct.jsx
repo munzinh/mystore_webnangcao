@@ -7,7 +7,7 @@ import { categories } from '../assets/assets';
 
 const AllProduct = () => {
 
-    const { products, searchQuery } = useAppContext();
+    const { products, isProductsLoading, searchQuery } = useAppContext();
     const [filteredProducts, setFilteredProducts] = useState([]);
 
     // Filter State
@@ -61,7 +61,7 @@ const AllProduct = () => {
                 isAllProducts={true}
             />
 
-            <ProductGrid products={filteredProducts} />
+            <ProductGrid products={filteredProducts} loading={isProductsLoading} />
         </div>
     )
 }

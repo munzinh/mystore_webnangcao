@@ -18,6 +18,7 @@ export const AppContextProvider = ({ children }) => {
     const [isSeller, setIsSeller] = useState(false)
     const [showUserLogin, setShowUserLogin] = useState(false)
     const [products, setProducts] = useState([])
+    const [isProductsLoading, setIsProductsLoading] = useState(true)
 
     const [cartItems, setCartItems] = useState([])
     const [searchQuery, setSearchQuery] = useState([])
@@ -51,6 +52,7 @@ export const AppContextProvider = ({ children }) => {
 
     //Fetch all product
     const fetchProducts = async () => {
+        setIsProductsLoading(true);
         try {
             const { data } = await axios.get('/api/product/list');
             if (data.success) {
@@ -59,7 +61,10 @@ export const AppContextProvider = ({ children }) => {
                 toast.error(data.message)
             }
         } catch (error) {
-            toast.error(data.message)
+            console.error("Fetch products error:", error);
+            toast.error("Failed to load products")
+        } finally {
+            setIsProductsLoading(false);
         }
     }
 
@@ -159,7 +164,7 @@ export const AppContextProvider = ({ children }) => {
 
     const value = {
         navigate, user, setUser, setIsSeller, isSeller, showUserLogin,
-        setShowUserLogin, products, currency, addToCart, updateCartItem, removeFromCart,
+        setShowUserLogin, products, isProductsLoading, currency, addToCart, updateCartItem, removeFromCart,
         cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount, axios, fetchProducts,
         setCartItems, trackBehavior
     }

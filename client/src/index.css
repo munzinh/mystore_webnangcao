@@ -76,3 +76,18 @@ body {
 .product-image-fade {
   animation: productImageFadeIn 0.28s ease-out;
 }
+
+/* Skeleton animation */
+.skeleton {
+  @apply relative overflow-hidden bg-gray-200 rounded;
+}
+.skeleton::after {
+  content: "";
+  @apply absolute inset-0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

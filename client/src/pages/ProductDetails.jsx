@@ -3,10 +3,11 @@ import { useAppContext } from "../context/AppContext";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import RecommendationSection from "../components/RecommendationSection";
 import ReviewSection from "../components/ReviewSection";
+import { SkeletonProductDetails } from "../components/Skeleton";
 import axios from "axios";
 
 const ProductDetails = () => {
-    const { products, addToCart, user, trackBehavior } = useAppContext();
+    const { products, isProductsLoading, addToCart, user, trackBehavior } = useAppContext();
     const navigate = useNavigate();
     const { id } = useParams();
     const [relatedProducts, setRelatedProducts] = useState([]);
@@ -89,8 +90,19 @@ const ProductDetails = () => {
     // Click thủ công vào thumbnail → chỉ đổi ảnh, giữ nguyên variant
     const handleThumbnailClick = (image) => setThumbnail(image);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    if (!product) return null;
+    // ── Pre-render checks ────────────────────────────────────────────────────
+    if (isProductsLoading) {
+        return <SkeletonProductDetails />;
+    }
+
+    if (!product) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+                <p className="text-xl text-gray-500">Sản phẩm không tồn tại hoặc đã bị xóa.</p>
+                <Link to="/" className="text-[#d70018] font-medium hover:underline">Quay về trang chủ</Link>
+            </div>
+        );
+    }
 
     return (
         <div className="mt-12 px-4 sm:px-6 lg:px-8">

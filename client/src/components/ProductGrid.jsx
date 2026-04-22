@@ -1,7 +1,18 @@
 import React from 'react';
 import ProductCard from './ProductCard';
+import { SkeletonProductCard } from './Skeleton';
 
-const ProductGrid = ({ products }) => {
+const ProductGrid = ({ products, loading }) => {
+    if (loading) {
+        return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                {Array(10).fill(0).map((_, i) => (
+                    <SkeletonProductCard key={i} />
+                ))}
+            </div>
+        );
+    }
+
     return (
         <div className="w-full">
             {products.length > 0 ? (
@@ -12,6 +23,7 @@ const ProductGrid = ({ products }) => {
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                    {/* ... rest of non-product state ... */}
                     <p className="text-lg font-medium text-gray-600 mb-2">
                         Không tìm thấy sản phẩm nào
                     </p>
