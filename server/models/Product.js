@@ -42,6 +42,9 @@ const productSchema = new mongoose.Schema({
     price:      { type: Number, required: true },
     offerPrice: { type: Number, required: true },
     inStock:    { type: Boolean, default: true },
+    
+    // Tính năng Flash Sale
+    flashSaleEndTime: { type: Date, default: null },
 
     image:    { type: Array,  required: true },
     category: { type: String, required: true },     // "mobile", "laptop", "tablet", "accessory"

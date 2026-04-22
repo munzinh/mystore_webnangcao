@@ -6,24 +6,21 @@ const Categories = () => {
   const navigate = useNavigate();
 
   return (
-    /* Bỏ: bg-white, border, rounded-lg, shadow-sm. 
-       Chỉ giữ lại: p-4 (để nội dung không sát lề) và kích thước. */
-    <div className='p-4 w-full md:w-[280px] shrink-0'>
-      <p className='text-xl font-bold mb-4 border-b pb-2'>Phân loại</p>
+    <div className='bg-white rounded-xl shadow-sm p-2.5 w-full h-full flex flex-col'>
+      <p className='text-base font-bold mb-2 px-2 text-gray-800'>Danh mục</p>
       
-      <div className='flex flex-col gap-1'>
+      <div className='flex flex-col gap-0.5'>
         {categories.map((category, index) => (
           <div
             key={index}
-            /* Cập nhật class hover: chỉ đổi màu chữ và nền nhẹ, không bóng đổ */
-            className='group cursor-pointer px-3 py-2.5 rounded-md flex items-center gap-3 hover:bg-orange-50 hover:text-orange-600 transition-all'
+            className='group cursor-pointer px-2 py-2 rounded flex items-center gap-2 hover:bg-gray-100 transition-colors'
             onClick={() => {
               navigate(`/products/${category.path.toLowerCase()}`);
               window.scrollTo(0, 0);
             }}
           >
-            <img src={category.image} alt="" className='w-5 h-5 object-contain group-hover:scale-110 transition' />
-            <p className='text-sm font-medium'>{category.text}</p>
+            <img src={category.image} alt="" className='w-5 h-5 object-contain' />
+            <p className='text-[13px] font-medium text-gray-700 group-hover:text-[#d70018] group-hover:font-bold transition-all'>{category.text}</p>
           </div>
         ))}
       </div>

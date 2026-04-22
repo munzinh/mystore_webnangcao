@@ -10,14 +10,18 @@ export const addProduct = async (req, res) => {
         let productData = JSON.parse(req.body.productData);
 
 
-        const images = req.files
-
-        let imagesUrl = await Promise.all(
-            images.map(async (image) => {
-                let result = await cloudinary.uploader.upload(image.path, { resource_type: 'image' });
-                return result.secure_url
-            })
-        )
+        let imagesUrl = [];
+        for (let i = 0; i < 4; i++) {
+            const fileArray = req.files && req.files[`image_${i}`];
+            if (fileArray && fileArray.length > 0) {
+                let result = await cloudinary.uploader.upload(fileArray[0].path, { resource_type: 'image' });
+                imagesUrl.push(result.secure_url);
+            } else if (req.body[`existingImage_${i}`]) {
+                imagesUrl.push(req.body[`existingImage_${i}`]);
+            } else {
+                imagesUrl.push('');
+            }
+        }
 
         await Product.create({ ...productData, image: imagesUrl })
         res.json({ success: true, message: 'Đã thêm sản phẩm thành công' })
@@ -80,24 +84,29 @@ export const editProduct = async (req, res) => {
         const { id } = req.body;
         let productData = JSON.parse(req.body.productData);
 
-        const images = req.files;
         let product = await Product.findById(id);
-
         if (!product) {
             return res.json({ success: false, message: 'Sản phẩm không tồn tại' });
         }
 
         let updateData = { ...productData };
 
-        if (images && images.length > 0) {
-            let imagesUrl = await Promise.all(
-                images.map(async (image) => {
-                    let result = await cloudinary.uploader.upload(image.path, { resource_type: 'image' });
-                    return result.secure_url
-                })
-            );
-            updateData.image = imagesUrl;
+        let imagesUrl = [];
+        for (let i = 0; i < 4; i++) {
+            const fileArray = req.files && req.files[`image_${i}`];
+            if (fileArray && fileArray.length > 0) {
+                let result = await cloudinary.uploader.upload(fileArray[0].path, { resource_type: 'image' });
+                imagesUrl.push(result.secure_url);
+            } else if (req.body[`existingImage_${i}`]) {
+                imagesUrl.push(req.body[`existingImage_${i}`]);
+            } else {
+                imagesUrl.push('');
+            }
         }
+        
+        // Only update image field if there are any images provided (new or existing)
+        // If the user deliberately removed all images, it will save an array of empty strings.
+        updateData.image = imagesUrl;
 
         await Product.findByIdAndUpdate(id, updateData);
         res.json({ success: true, message: 'Đã cập nhật sản phẩm thành công' });

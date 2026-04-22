@@ -178,8 +178,12 @@ const ProductForm = ({ initialData, onSubmit, loading, onCancel }) => {
 
         const formData = new FormData();
         formData.append('productData', JSON.stringify(productData));
-        for (let i = 0; i < files.length; i++) {
-            if (files[i]) formData.append('images', files[i]);
+        for (let i = 0; i < 4; i++) {
+            if (files[i]) {
+                formData.append(`image_${i}`, files[i]);
+            } else if (imageUrls[i]) {
+                formData.append(`existingImage_${i}`, imageUrls[i]);
+            }
         }
         if (initialData?._id) formData.append('id', initialData._id);
         onSubmit(formData);

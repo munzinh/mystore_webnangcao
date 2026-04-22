@@ -27,11 +27,11 @@ const RecommendationSection = ({
 
     if (loading) {
         return (
-            <div className="mt-16">
-                <div className="flex items-center gap-3 mb-6">
+        <div className="bg-white rounded-xl shadow-sm p-3 md:p-5 w-full mb-6">
+                <div className="flex items-center gap-3 mb-4">
                     <div className="h-7 w-48 bg-gray-200 rounded animate-pulse"></div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                     {Array(5).fill(0).map((_, i) => (
                         <div key={i} className="bg-gray-100 rounded-lg animate-pulse h-64"></div>
                     ))}
@@ -45,12 +45,12 @@ const RecommendationSection = ({
     if (displayed.length === 0) return null;
 
     return (
-        <div className="mt-16">
+        <div className="bg-white rounded-xl shadow-sm p-3 md:p-5 w-full mb-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
                 <div className="flex flex-col items-start gap-1">
                     <div className="flex items-center gap-2">
-                        <p className="text-2xl font-semibold text-gray-800">{title}</p>
+                        <p className="text-xl md:text-2xl font-bold text-gray-800 uppercase">{title}</p>
                         {badge && (
                             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeColor}`}>
                                 {badge}
@@ -58,12 +58,11 @@ const RecommendationSection = ({
                         )}
                     </div>
                     {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-                    <div className="w-16 h-0.5 bg-[#d70018] rounded-full mt-1"></div>
                 </div>
             </div>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                 {displayed.map((product, index) => (
                     <ProductCard key={product._id || index} product={product} />
                 ))}

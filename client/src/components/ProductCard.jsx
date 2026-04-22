@@ -35,26 +35,26 @@ const ProductCard = ({ product }) => {
                 navigate(`/products/${product.category.toLowerCase()}/${product._id}`);
                 scrollTo(0, 0);
             }}
-            className="relative border border-gray-300 rounded-md p-3 bg-white w-full hover:shadow-md transition overflow-hidden flex flex-col h-full cursor-pointer"
+            className="group relative border border-gray-100 rounded-xl p-2.5 bg-white w-full hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full cursor-pointer"
         >
             {/* Tag giảm giá */}
             {discountPercent > 0 && (
-                <div className="absolute top-0 left-0 bg-[#d70018] text-white text-[11px] font-bold px-2.5 py-1 rounded-br-lg z-10">
+                <div className="absolute top-0 left-0 bg-[#d70018] text-white text-[11px] font-bold px-2.5 py-1 rounded-br-xl z-10 shadow-sm">
                     Giảm {discountPercent}%
                 </div>
             )}
 
             {/* Badge số biến thể */}
             {variantCount > 1 && (
-                <div className="absolute top-0 right-0 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg z-10">
+                <div className="absolute top-0 right-0 bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-medium px-2 py-1 rounded-bl-xl z-10">
                     {variantCount} tuỳ chọn
                 </div>
             )}
 
             {/* Hình ảnh */}
-            <div className="group flex items-center justify-center h-32 mb-3 mt-2">
+            <div className="flex items-center justify-center h-40 mb-3 mt-4">
                 <img
-                    className="group-hover:scale-105 transition h-full object-contain"
+                    className="group-hover:scale-105 transition-transform duration-300 h-full object-contain"
                     src={product.image[0]}
                     alt={product.name}
                 />
@@ -63,23 +63,23 @@ const ProductCard = ({ product }) => {
             {/* Thông tin */}
             <div className="text-gray-500/70 text-sm flex flex-col gap-1 flex-grow">
                 {/* Category + Brand */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-xs truncate">{product.category}</p>
+                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                    <p className="text-[11px] truncate">{product.category}</p>
                     {product.brand && (
-                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0 rounded">
+                        <span className="text-[10px] bg-gray-50 border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
                             {product.brand}
                         </span>
                     )}
                 </div>
 
-                <p className="text-gray-800 font-semibold text-base truncate">{product.name}</p>
+                <p className="text-gray-800 font-semibold text-[14px] leading-snug hover:text-[#d70018] transition-colors line-clamp-2 min-h-[42px]">{product.name}</p>
 
                 {/* Giá */}
-                <div className="flex flex-col mt-1">
-                    <p className="text-lg font-semibold text-[#d70018] leading-tight">
+                <div className="flex flex-col mt-auto pt-2">
+                    <p className="text-base font-bold text-[#d70018] leading-tight">
                         {hasVariants ? 'Từ ' : ''}{formatCurrency(displayOfferPrice)}
                     </p>
-                    <p className="text-gray-500/60 text-sm line-through leading-tight">
+                    <p className="text-gray-400 text-xs line-through leading-tight mt-0.5">
                         {displayPrice > displayOfferPrice ? formatCurrency(displayPrice) : '\u00A0'}
                     </p>
                 </div>

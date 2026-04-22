@@ -29,19 +29,19 @@ export default function MainBanner() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-full">
       
       {/* Ảnh */}
       <img
         src={images[index]}
         alt="banner"
-        className="w-full h-[350px] object-cover rounded-lg"
+        className="w-full h-[250px] md:h-[350px] object-cover rounded-xl shadow-sm"
       />
 
       {/* Nút trái */}
       <button
         onClick={prevSlide}
-        className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-black/40 text-white px-3 py-1 rounded-full"
+        className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-black/30 hover:bg-black/60 transition-colors text-white w-8 h-8 flex items-center justify-center rounded-full shadow-md"
       >
         ‹
       </button>
@@ -49,7 +49,7 @@ export default function MainBanner() {
       {/* Nút phải */}
       <button
         onClick={nextSlide}
-        className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black/40 text-white px-3 py-1 rounded-full"
+        className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black/30 hover:bg-black/60 transition-colors text-white w-8 h-8 flex items-center justify-center rounded-full shadow-md"
       >
         ›
       </button>
