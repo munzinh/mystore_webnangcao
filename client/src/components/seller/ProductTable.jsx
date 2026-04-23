@@ -75,14 +75,14 @@ const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
                                         </div>
                                         {product.brand && (
                                             <span className="inline-block mt-0.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                                                {product.brand}
+                                                {product.brand.name || product.brand}
                                             </span>
                                         )}
                                     </td>
 
                                     {/* Danh mục */}
                                     <td className="px-4 py-3 whitespace-nowrap text-gray-500">
-                                        {product.category}
+                                        {product.category?.name || product.category}
                                     </td>
 
                                     {/* Biến thể badge + tooltip */}

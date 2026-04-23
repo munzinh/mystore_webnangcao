@@ -1,446 +1,410 @@
-import React, { useState, useEffect } from 'react';
-import { assets, categories } from '../../assets/assets';
+import React, { useState, useEffect, useMemo } from 'react';
+import { assets } from '../../assets/assets';
+import { useAppContext } from '../../context/AppContext';
+import { useProductDraft } from '../../hooks/useProductDraft';
 
-// ─── Tạo hàng variant rỗng ───────────────────────────────────────────────────
-const emptyVariant = () => ({ attributes: {}, variantLabel: '', price: '', offerPrice: '', inStock: 0 });
+const emptyVariant = () => ({ 
+    sku: `SKU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    attributes: {}, 
+    variantLabel: '', 
+    price: '', 
+    offerPrice: '', 
+    inStock: 0,
+    images: [] // New for variant-specific formatting
+});
 
-// ─── Helper: tự ghép label từ attributes ────────────────────────────────────
-const autoLabel = (attrs) => Object.values(attrs).filter(Boolean).join(' - ');
+const generateVariantsMatrix = (attributesConfig) => {
+    // attributesConfig: { 'Color': ['Red', 'Blue'], 'Storage': ['128GB', '256GB'] }
+    const keys = Object.keys(attributesConfig).filter(k => attributesConfig[k]?.length > 0);
+    if(keys.length === 0) return [emptyVariant()];
 
-// ─── Gợi ý attribute keys theo category ─────────────────────────────────────
-const ATTR_SUGGESTIONS = {
-    'mobile':    ['Màu sắc', 'ROM'],
-    'tablet':    ['Màu sắc', 'ROM'],
-    'laptop':    ['RAM', 'SSD', 'Màu sắc'],
-    'monitor':   ['Kích thước', 'Tần số làm mới'],
-    'headphone': ['Màu sắc'],
-    'accessory': ['Màu sắc', 'Size'],
-    'default':   ['Màu sắc', 'Dung lượng'],
+    let combinations = [{}];
+    for(const key of keys) {
+        const values = attributesConfig[key];
+        const newCombs = [];
+        for(const comb of combinations) {
+            for(const val of values) {
+                newCombs.push({...comb, [key]: val});
+            }
+        }
+        combinations = newCombs;
+    }
+
+    return combinations.map(comb => {
+        const v = emptyVariant();
+        v.attributes = comb;
+        v.variantLabel = Object.values(comb).join(' - ');
+        return v;
+    });
 };
 
-const getSuggestions = (category) =>
-    ATTR_SUGGESTIONS[category?.toLowerCase()] || ATTR_SUGGESTIONS['default'];
-
-// ─────────────────────────────────────────────────────────────────────────────
 const ProductForm = ({ initialData, onSubmit, loading, onCancel }) => {
-    const [files,     setFiles]     = useState([]);
-    const [imageUrls, setImageUrls] = useState([]);
+    const { axios } = useAppContext();
 
-    const [name,        setName]        = useState('');
-    const [description, setDescription] = useState('');
-    const [category,    setCategory]    = useState('');
-    const [brand,       setBrand]       = useState('');
+    const [brands, setBrands] = useState([]);
+    const [categories, setCategories] = useState([]);
 
-    // Tags chip
-    const [tags,     setTags]     = useState([]);
-    const [tagInput, setTagInput] = useState('');
-
-    const addTag = (raw) => {
-        const t = raw.trim().toLowerCase();
-        if (t && !tags.includes(t)) setTags(p => [...p, t]);
-        setTagInput('');
-    };
-    const removeTag = (t) => setTags(p => p.filter(x => x !== t));
-    const handleTagKey = (e) => {
-        if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagInput); }
-        else if (e.key === 'Backspace' && tagInput === '' && tags.length) setTags(p => p.slice(0, -1));
+    const initialState = {
+        name: '',
+        description: '',
+        category: '',
+        brand: '',
+        tags: [],
+        specs: {},
+        variants: [emptyVariant()],
+        // We do save draft, but image files must be handled via state
     };
 
-    // Category dynamic
-    const [allCategories,    setAllCategories]    = useState(categories.map(c => c.name || c.path));
-    const [newCategoryInput, setNewCategoryInput] = useState('');
-    const [showNewCategory,  setShowNewCategory]  = useState(false);
+    const [draft, setDraft, clearDraft] = useProductDraft(initialState);
+    const [formState, setFormState] = useState(draft);
 
-    // Variants
-    const [variants, setVariants] = useState([emptyVariant()]);
+    const [step, setStep] = useState(1);
+    
+    // Media (Files cannot be serialized to localStorage)
+    const [globalFiles, setGlobalFiles] = useState([null, null, null, null]);
+    const [globalExistingUrls, setGlobalExistingUrls] = useState(['', '', '', '']);
 
-    const addVariant    = () => setVariants(p => [...p, emptyVariant()]);
-    const removeVariant = (idx) => { if (variants.length > 1) setVariants(p => p.filter((_, i) => i !== idx)); };
-
-    const updateVariant = (idx, field, value) =>
-        setVariants(p => p.map((v, i) => i === idx ? { ...v, [field]: value } : v));
-
-    // Cập nhật 1 attribute key-value trong variant
-    const updateAttr = (varIdx, key, value) => {
-        setVariants(p => p.map((v, i) => {
-            if (i !== varIdx) return v;
-            const newAttrs = { ...v.attributes, [key]: value };
-            // Tự cập nhật variantLabel nếu seller chưa tự nhập
-            const currentLabel = v.variantLabel;
-            const wasAuto = !currentLabel || currentLabel === autoLabel(v.attributes);
-            return { ...v, attributes: newAttrs, variantLabel: wasAuto ? autoLabel(newAttrs) : currentLabel };
-        }));
-    };
-
-    // Thêm/đổi tên attribute key
-    const renameAttrKey = (varIdx, oldKey, newKey) => {
-        setVariants(p => p.map((v, i) => {
-            if (i !== varIdx) return v;
-            const newAttrs = {};
-            Object.entries(v.attributes).forEach(([k, val]) => { newAttrs[k === oldKey ? newKey : k] = val; });
-            return { ...v, attributes: newAttrs, variantLabel: autoLabel(newAttrs) };
-        }));
-    };
-
-    const addAttrToVariant = (varIdx, key) => {
-        setVariants(p => p.map((v, i) => {
-            if (i !== varIdx || (key in v.attributes)) return v;
-            return { ...v, attributes: { ...v.attributes, [key]: '' } };
-        }));
-    };
-
-    const removeAttr = (varIdx, key) => {
-        setVariants(p => p.map((v, i) => {
-            if (i !== varIdx) return v;
-            const { [key]: _, ...rest } = v.attributes;
-            return { ...v, attributes: rest, variantLabel: autoLabel(rest) };
-        }));
-    };
-
-    // Bulk: áp dụng cùng attribute keys cho tất cả variants
-    const applyKeysToAll = (keys) => {
-        setVariants(p => p.map(v => {
-            const newAttrs = {};
-            keys.forEach(k => { newAttrs[k] = v.attributes[k] || ''; });
-            return { ...v, attributes: newAttrs, variantLabel: autoLabel(newAttrs) };
-        }));
-    };
-
-    // Gợi ý keys của category hiện tại
-    const suggestions = getSuggestions(category);
-
-    // Load initialData (edit mode)
     useEffect(() => {
-        if (!initialData) return;
-        setName(initialData.name || '');
-        setDescription(Array.isArray(initialData.description) ? initialData.description.join('\n') : (initialData.description || ''));
-        setCategory(initialData.category || '');
-        setBrand(initialData.brand || '');
-        setTags(Array.isArray(initialData.tags) ? initialData.tags : []);
-        if (initialData.image) setImageUrls(initialData.image);
+        const fetchData = async () => {
+            try {
+                // In a real scenario, check if these exist
+                const [brandRes, catRes] = await Promise.all([
+                    axios.get('/api/brand/list'),
+                    axios.get('/api/category/list')
+                ]);
+                if(brandRes.data.success) setBrands(brandRes.data.brands);
+                if(catRes.data.success) setCategories(catRes.data.categories);
+            } catch (error) {
+                console.error("Fetch form requirements error:", error);
+            }
+        };
+        fetchData();
+    }, []);
 
-        if (initialData.variants?.length > 0) {
-            setVariants(initialData.variants.map(v => ({
-                attributes:   v.attributes instanceof Map ? Object.fromEntries(v.attributes) : (v.attributes || {}),
-                variantLabel: v.variantLabel || autoLabel(v.attributes || {}),
-                price:        v.price       ?? '',
-                offerPrice:   v.offerPrice  ?? '',
-                inStock:      v.inStock     ?? 0,
-            })));
-        } else {
-            // Legacy: data cũ dùng color + storage
-            const legacyAttrs = {};
-            if (initialData.color)   legacyAttrs['Màu sắc'] = initialData.color;
-            if (initialData.storage) legacyAttrs['ROM']      = initialData.storage;
-            setVariants([{
-                attributes:   legacyAttrs,
-                variantLabel: autoLabel(legacyAttrs),
-                price:        initialData.price      || '',
-                offerPrice:   initialData.offerPrice || '',
-                inStock:      typeof initialData.inStock === 'number' ? initialData.inStock : 0,
-            }]);
+    // Load initial data if edit mode
+    useEffect(() => {
+        if(initialData) {
+            setFormState({
+                name: initialData.name || '',
+                description: Array.isArray(initialData.description) ? initialData.description.join('\n') : '',
+                category: typeof initialData.category === 'object' ? initialData.category._id : initialData.category,
+                brand: typeof initialData.brand === 'object' ? initialData.brand._id : initialData.brand,
+                tags: initialData.tags || [],
+                specs: initialData.specs || {},
+                variants: initialData.variants || [emptyVariant()]
+            });
+            
+            // Images
+            if(initialData.image) {
+                setGlobalExistingUrls(
+                    [0, 1, 2, 3].map(i => initialData.image[i] || '')
+                );
+            }
         }
     }, [initialData]);
 
-    // Submit
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        for (let i = 0; i < variants.length; i++) {
-            const v = variants[i];
-            if (!v.price || !v.offerPrice) {
-                alert(`Biến thể ${i + 1}: Vui lòng nhập đầy đủ giá gốc và giá ưu đãi.`);
-                return;
+    // Track state to draft
+    useEffect(() => {
+        if(!initialData) setDraft(formState);
+    }, [formState]);
+
+
+    // Data Manipulation
+    const updateField = (field, value) => setFormState(p => ({...p, [field]: value}));
+
+    // Tag Logic
+    const [tagInput, setTagInput] = useState('');
+    const handleTagAdd = (e) => {
+        if(e.key === 'Enter') {
+            e.preventDefault();
+            const tag = tagInput.trim().toLowerCase();
+            if(tag && !formState.tags.includes(tag)) {
+                updateField('tags', [...formState.tags, tag]);
             }
+            setTagInput('');
         }
+    }
 
-        const parsedVariants = variants.map(v => ({
-            attributes:   v.attributes,
-            variantLabel: v.variantLabel || autoLabel(v.attributes),
-            price:        Number(v.price),
-            offerPrice:   Number(v.offerPrice),
-            inStock:      Number(v.inStock || 0),
-        }));
-
-        const prices      = parsedVariants.map(v => v.price);
-        const offerPrices = parsedVariants.map(v => v.offerPrice);
-
-        const productData = {
-            name,
-            description: description.split('\n').filter(l => l.trim() !== ''),
-            category,
-            brand,
-            tags,
-            price:      Math.min(...prices),
-            offerPrice: Math.min(...offerPrices),
-            inStock:    parsedVariants.reduce((s, v) => s + v.inStock, 0) > 0,
-            variants:   parsedVariants,
-        };
-
-        const formData = new FormData();
-        formData.append('productData', JSON.stringify(productData));
-        for (let i = 0; i < 4; i++) {
-            if (files[i]) {
-                formData.append(`image_${i}`, files[i]);
-            } else if (imageUrls[i]) {
-                formData.append(`existingImage_${i}`, imageUrls[i]);
-            }
+    // Generator 
+    const [generatorConfig, setGeneratorConfig] = useState({}); // { Color: "Red, Blue", Storage: "128, 256" }
+    const applyGenerator = () => {
+        const parsedConfig = {};
+        for(let key in generatorConfig) {
+            const vals = generatorConfig[key].split(',').map(s => s.trim()).filter(Boolean);
+            if(vals.length > 0) parsedConfig[key] = vals;
         }
-        if (initialData?._id) formData.append('id', initialData._id);
-        onSubmit(formData);
+        updateField('variants', generateVariantsMatrix(parsedConfig));
     };
 
-    // Preview min price
-    const filledVariants = variants.filter(v => v.offerPrice);
-    const minOfferPrice  = filledVariants.length ? Math.min(...filledVariants.map(v => Number(v.offerPrice))) : 0;
-    const totalStock     = variants.reduce((s, v) => s + Number(v.inStock || 0), 0);
+
+    // Submits
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        
+        const payload = { ...formState };
+        payload.description = payload.description.split('\n').filter(Boolean);
+
+        // Required Validations
+        if(!payload.category || !payload.brand) return alert("Vui lòng chọn danh mục và thương hiệu");
+
+        // Calculate min price for root
+        const prices = payload.variants.map(v => Number(v.price) || 0);
+        const offers = payload.variants.map(v => Number(v.offerPrice) || 0);
+        payload.price = Math.min(...prices);
+        payload.offerPrice = Math.min(...offers);
+        payload.inStock = payload.variants.reduce((a, b) => a + Number(b.inStock || 0), 0) > 0;
+
+        const formData = new FormData();
+        formData.append('productData', JSON.stringify(payload));
+        
+        // Append global images
+        globalFiles.forEach((file, idx) => {
+            if(file) formData.append(`image_${idx}`, file);
+            else if(globalExistingUrls[idx]) formData.append(`existingImage_${idx}`, globalExistingUrls[idx]);
+        });
+
+        // (We skip variant-specific files for now to keep form simple, but API supports it)
+        
+        if (initialData?._id) formData.append('id', initialData._id);
+        onSubmit(formData);
+        
+        if(!initialData) clearDraft();
+    }
+
+
+    const nextStep = () => setStep(p => Math.min(p + 1, 4));
+    const prevStep = () => setStep(p => Math.max(p - 1, 1));
 
     return (
-        <form onSubmit={handleSubmit} className="w-full space-y-6">
-
-            {/* ── Hình ảnh ── */}
-            <div>
-                <p className="text-base font-medium mb-2">Hình ảnh sản phẩm</p>
-                <div className="flex flex-wrap gap-3">
-                    {Array(4).fill('').map((_, idx) => (
-                        <label key={idx} htmlFor={`img-${idx}`}>
-                            <input onChange={e => { const u = [...files]; u[idx] = e.target.files[0]; setFiles(u); }}
-                                accept="image/*" type="file" id={`img-${idx}`} hidden />
-                            <img className="w-24 h-24 object-cover border border-gray-300 rounded cursor-pointer"
-                                src={files[idx] ? URL.createObjectURL(files[idx]) : (imageUrls[idx] || assets.upload_area)}
-                                alt="upload" />
-                        </label>
-                    ))}
-                </div>
-                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-1.5 mt-2 inline-block">
-                    💡 <strong>Lưu ý thứ tự ảnh:</strong> Ảnh 1 → Biến thể 1, Ảnh 2 → Biến thể 2, ...
-                    Upload ảnh đúng thứ tự để khách hàng thấy đúng ảnh khi chọn phiên bản.
-                </p>
-            </div>
-
-
-            {/* ── Tên + Danh mục + Brand + Tags ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="flex flex-col gap-1">
-                    <label className="text-base font-medium" htmlFor="pname">Tên sản phẩm *</label>
-                    <input id="pname" type="text" value={name} onChange={e => setName(e.target.value)}
-                        placeholder="VD: Samsung Galaxy S25 Ultra"
-                        className="outline-none py-2 px-3 rounded border border-gray-500/40" required />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                    <label className="text-base font-medium" htmlFor="cat">Danh mục *</label>
-                    <div className="flex gap-2">
-                        <select id="cat" value={category} onChange={e => setCategory(e.target.value)}
-                            className="flex-1 outline-none py-2 px-3 rounded border border-gray-500/40" required>
-                            <option value="">Chọn danh mục</option>
-                            {allCategories.map((c, i) => <option key={i} value={c}>{c}</option>)}
-                        </select>
-                        <button type="button" onClick={() => setShowNewCategory(s => !s)}
-                            className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded transition">
-                            + Mới</button>
-                    </div>
-                    {showNewCategory && (
-                        <div className="flex gap-2 mt-1">
-                            <input type="text" value={newCategoryInput} onChange={e => setNewCategoryInput(e.target.value)}
-                                placeholder="Tên danh mục mới..."
-                                className="flex-1 outline-none py-2 px-3 rounded border border-blue-400 text-sm"
-                                onKeyDown={e => {
-                                    if (e.key !== 'Enter') return; e.preventDefault();
-                                    const t = newCategoryInput.trim();
-                                    if (t && !allCategories.includes(t)) setAllCategories(p => [...p, t]);
-                                    if (t) setCategory(t);
-                                    setNewCategoryInput(''); setShowNewCategory(false);
-                                }} />
-                            <button type="button" onClick={() => {
-                                const t = newCategoryInput.trim();
-                                if (t && !allCategories.includes(t)) setAllCategories(p => [...p, t]);
-                                if (t) setCategory(t);
-                                setNewCategoryInput(''); setShowNewCategory(false);
-                            }} className="px-3 py-2 bg-blue-600 text-white text-sm rounded">Thêm</button>
-                            <button type="button" onClick={() => setShowNewCategory(false)}
-                                className="px-3 py-2 bg-gray-200 text-sm rounded">Hủy</button>
+        <div className="bg-white rounded-xl shadow-lg border border-purple-100 overflow-hidden">
+            {/* Stepper Header */}
+            <div className="flex bg-purple-50 justify-between items-center px-8 py-5 border-b border-purple-100">
+                {[
+                    {n: 1, label: "Thông tin cơ bản"},
+                    {n: 2, label: "Hình ảnh"},
+                    {n: 3, label: "Phân loại (Biến thể)"},
+                    {n: 4, label: "Xác nhận"}
+                ].map((s, idx) => (
+                    <div key={s.n} className="flex items-center flex-1">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300
+                            ${step === s.n ? 'bg-purple-600 text-white shadow-md' : step > s.n ? 'bg-purple-300 text-purple-800' : 'bg-gray-200 text-gray-500'}`}>
+                            {step > s.n ? '✓' : s.n}
                         </div>
-                    )}
-                </div>
+                        {idx < 3 && (
+                            <div className={`h-1 flex-1 mx-4 rounded-full transition-all duration-500 ${step > s.n ? 'bg-purple-400' : 'bg-gray-200'}`}></div>
+                        )}
+                        <span className="hidden lg:block text-sm font-medium ml-2 text-gray-600 w-max absolute mt-12">{s.label}</span>
+                    </div>
+                ))}
+            </div>
 
-                <div className="flex flex-col gap-1">
-                    <label className="text-base font-medium" htmlFor="brand">Thương hiệu *</label>
-                    <input id="brand" type="text" value={brand} onChange={e => setBrand(e.target.value)}
-                        placeholder="VD: Samsung, Apple, Dell..."
-                        className="outline-none py-2 px-3 rounded border border-gray-500/40" required />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                    <label className="text-base font-medium">Tags (AI gợi ý)</label>
-                    <div className="flex flex-wrap gap-1.5 py-2 px-3 rounded border border-gray-500/40 min-h-[42px] cursor-text"
-                        onClick={() => document.getElementById('tag-input').focus()}>
-                        {tags.map(t => (
-                            <span key={t} className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
-                                {t}<button type="button" onClick={() => removeTag(t)} className="hover:text-red-500">×</button>
-                            </span>
-                        ))}
-                        <input id="tag-input" type="text" value={tagInput}
-                            onChange={e => setTagInput(e.target.value)}
-                            onKeyDown={handleTagKey}
-                            onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
-                            placeholder={tags.length === 0 ? 'Gõ + Enter (VD: 5g, gaming)...' : ''}
-                            className="outline-none flex-1 text-sm min-w-[120px] bg-transparent" />
+            <form onSubmit={step === 4 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }} className="p-8 font-[Nunito_Sans]">
+                
+                {/* STEP 1: Basic Info */}
+                <div className={step === 1 ? 'block animate-fade-in' : 'hidden'}>
+                    <h2 className="text-2xl font-bold font-[Rubik] text-purple-900 mb-6">Thông tin cơ bản</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Tên sản phẩm *</label>
+                                <input required value={formState.name} onChange={e => updateField('name', e.target.value)}
+                                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition" />
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Danh mục *</label>
+                                    <select required value={formState.category} onChange={e => updateField('category', e.target.value)}
+                                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none">
+                                        <option value="">-- Chọn danh mục --</option>
+                                        {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">Thương hiệu *</label>
+                                    <select required value={formState.brand} onChange={e => updateField('brand', e.target.value)}
+                                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none">
+                                        <option value="">-- Chọn thương hiệu --</option>
+                                        {brands.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Tags (Enter để thêm)</label>
+                                <div className="flex flex-wrap gap-2 p-2 border-2 border-gray-200 rounded-lg min-h-[48px]">
+                                    {formState.tags.map(t => (
+                                        <span key={t} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                                            {t} <button type="button" onClick={() => updateField('tags', formState.tags.filter(x => x !== t))} className="hover:text-red-500">×</button>
+                                        </span>
+                                    ))}
+                                    <input value={tagInput} onChange={e=>setTagInput(e.target.value)} onKeyDown={handleTagAdd} 
+                                        className="flex-1 outline-none min-w-[100px] text-sm bg-transparent" placeholder="Thêm tag..." />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Mô tả chi tiết *</label>
+                            <textarea required rows={10} value={formState.description} onChange={e => updateField('description', e.target.value)}
+                                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 outline-none resize-none"
+                                placeholder="Gõ mỗi ý chính trên 1 dòng..." />
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* ── Mô tả ── */}
-            <div className="flex flex-col gap-1">
-                <label className="text-base font-medium" htmlFor="desc">Mô tả sản phẩm</label>
-                <textarea id="desc" rows={4} value={description} onChange={e => setDescription(e.target.value)}
-                    className="outline-none py-2 px-3 rounded border border-gray-500/40 resize-none"
-                    placeholder="Mỗi dòng 1 đặc điểm..." />
-            </div>
+                {/* STEP 2: Media */}
+                <div className={step === 2 ? 'block animate-fade-in' : 'hidden'}>
+                    <h2 className="text-2xl font-bold font-[Rubik] text-purple-900 mb-2">Hình ảnh sản phẩm</h2>
+                    <p className="text-gray-500 mb-6">Tải lên ít nhất 1 hình ảnh rõ nét cho sản phẩm này.</p>
+                    
+                    <div className="flex flex-wrap gap-6">
+                        {[0, 1, 2, 3].map(idx => (
+                            <label key={idx} className="relative w-32 h-32 border-2 border-dashed border-purple-300 rounded-xl flex items-center justify-center cursor-pointer hover:bg-purple-50 transition group overflow-hidden bg-gray-50">
+                                <input type="file" accept="image/*" hidden 
+                                    onChange={e => setGlobalFiles(p => { const x=[...p]; x[idx]=e.target.files[0]; return x;})} />
+                                
+                                {globalFiles[idx] || globalExistingUrls[idx] ? (
+                                    <img src={globalFiles[idx] ? URL.createObjectURL(globalFiles[idx]) : globalExistingUrls[idx]} 
+                                         className="w-full h-full object-cover" alt="preview" />
+                                ) : (
+                                    <div className="text-center">
+                                        <span className="text-purple-400 text-3xl">+</span>
+                                        <p className="text-xs text-purple-600 font-medium">Ảnh {idx+1}</p>
+                                    </div>
+                                )}
+                            </label>
+                        ))}
+                    </div>
+                </div>
 
-            {/* ── Variants ── */}
-            <div>
-                <div className="flex items-start justify-between mb-3">
-                    <div>
-                        <p className="text-base font-medium">
-                            Biến thể sản phẩm <span className="text-red-500">*</span>
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                            Thêm từng phiên bản (màu, ROM, RAM…). Mỗi biến thể có giá và kho riêng.
-                        </p>
+                {/* STEP 3: Variants */}
+                <div className={step === 3 ? 'block animate-fade-in' : 'hidden'}>
+                    <h2 className="text-2xl font-bold font-[Rubik] text-purple-900 mb-2">Phân loại hàng</h2>
+                    
+                    <div className="bg-purple-50 p-5 rounded-xl border border-purple-100 mb-6 flex gap-4 items-end">
+                        <div className="flex-1">
+                            <label className="block text-sm font-bold text-purple-800 mb-1">Màu sắc (phân cách bằng dấu phẩy)</label>
+                            <input value={generatorConfig['Color'] || ''} onChange={e => setGeneratorConfig(p=>({...p, 'Color': e.target.value}))} 
+                                className="w-full px-3 py-2 border rounded outline-none focus:border-purple-500" placeholder="Đen, Trắng, Titanium..." />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-bold text-purple-800 mb-1">Dung lượng / Kích thước</label>
+                            <input value={generatorConfig['Storage'] || ''} onChange={e => setGeneratorConfig(p=>({...p, 'Storage': e.target.value}))} 
+                                className="w-full px-3 py-2 border rounded outline-none focus:border-purple-500" placeholder="128GB, 256GB..." />
+                        </div>
+                        <button type="button" onClick={applyGenerator} className="bg-purple-600 text-white px-4 py-2 font-bold rounded hover:bg-purple-700 transition">
+                            Tạo tổ hợp
+                        </button>
+                    </div>
 
-                        {/* Gợi ý attribute keys theo category */}
-                        {category && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                <span className="text-xs text-gray-500 mr-1">Gợi ý cho {category}:</span>
-                                {suggestions.map(key => (
-                                    <button key={key} type="button"
-                                        onClick={() => applyKeysToAll([...new Set([...Object.keys(variants[0].attributes), key])])}
-                                        className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-full hover:bg-blue-100 transition">
-                                        + {key}
-                                    </button>
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
+                                <tr>
+                                    <th className="px-4 py-3 border-b">Biến thể</th>
+                                    <th className="px-4 py-3 border-b">Tên hiển thị</th>
+                                    <th className="px-4 py-3 border-b">SKU</th>
+                                    <th className="px-4 py-3 border-b text-right">Giá gốc (₫) *</th>
+                                    <th className="px-4 py-3 border-b text-right">Giá KM (₫) *</th>
+                                    <th className="px-4 py-3 border-b text-center">Tồn kho</th>
+                                    <th className="px-4 py-3 border-b"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {formState.variants.map((v, i) => (
+                                    <tr key={v.sku || i} className="hover:bg-purple-50 transition border-b last:border-0">
+                                        <td className="px-4 py-3 font-medium text-purple-900 border-r w-[200px]">
+                                            {/* Attributes Input Editor for manual tuning */}
+                                            {Object.entries(v.attributes).length > 0 
+                                                ? Object.entries(v.attributes).map(([k, vl]) => <span className="block text-xs text-gray-500" key={k}><b>{k}:</b> {vl}</span>) 
+                                                : <span className="text-xs text-gray-400 italic">Mặc định</span>}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input required value={v.variantLabel} onChange={e => {
+                                                const u = [...formState.variants]; u[i].variantLabel = e.target.value; updateField('variants', u);
+                                            }} className="w-full px-2 py-1 border rounded" />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input required value={v.sku} onChange={e => {
+                                                const u = [...formState.variants]; u[i].sku = e.target.value; updateField('variants', u);
+                                            }} className="w-[120px] px-2 py-1 border rounded text-xs font-mono" />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input required type="number" value={v.price} onChange={e => {
+                                                const u = [...formState.variants]; u[i].price = e.target.value; updateField('variants', u);
+                                            }} className="w-full px-2 py-1 border rounded text-right" min="0" />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input required type="number" value={v.offerPrice} onChange={e => {
+                                                const u = [...formState.variants]; u[i].offerPrice = e.target.value; updateField('variants', u);
+                                            }} className="w-full px-2 py-1 border rounded text-right" min="0" />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input required type="number" value={v.inStock} onChange={e => {
+                                                const u = [...formState.variants]; u[i].inStock = e.target.value; updateField('variants', u);
+                                            }} className="w-[80px] px-2 py-1 border rounded text-center mx-auto block" min="0" />
+                                        </td>
+                                        <td className="px-4 py-3 flex justify-center">
+                                            <button type="button" onClick={() => updateField('variants', formState.variants.filter((_, idx) => idx !== i))}
+                                                className="text-red-400 hover:text-red-600 font-bold" disabled={formState.variants.length===1}>✕</button>
+                                        </td>
+                                    </tr>
                                 ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" onClick={() => updateField('variants', [...formState.variants, emptyVariant()])}
+                        className="mt-4 text-purple-600 font-bold hover:underline text-sm">+ Thêm biến thể trống</button>
+                </div>
+
+                {/* STEP 4: Review */}
+                <div className={step === 4 ? 'block animate-fade-in' : 'hidden'}>
+                    <h2 className="text-2xl font-bold font-[Rubik] text-purple-900 mb-6">Xác nhận xuất bản</h2>
+                    
+                    <div className="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-r-lg mb-8">
+                        <h3 className="font-bold text-orange-900 mb-1">{formState.name || "Chưa có tên"}</h3>
+                        <p className="text-orange-700 text-sm mb-4">Bạn đang chuẩn bị đăng sản phẩm với sơ đồ sau:</p>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div className="bg-white p-3 rounded shadow-sm">
+                                <p className="text-gray-500 text-xs uppercase font-bold">Biến thể</p>
+                                <p className="text-3xl font-[Rubik] text-purple-600">{formState.variants.length}</p>
                             </div>
+                            <div className="bg-white p-3 rounded shadow-sm">
+                                <p className="text-gray-500 text-xs uppercase font-bold">Tổng hàng</p>
+                                <p className="text-3xl font-[Rubik] text-purple-600">{formState.variants.reduce((a,b)=>a+Number(b.inStock||0),0)}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Navigation Footer */}
+                <div className="mt-10 flex justify-between items-center border-t border-gray-100 pt-6">
+                    <div>
+                        {step > 1 ? (
+                            <button type="button" onClick={prevStep} className="px-6 py-2.5 font-bold text-gray-500 hover:text-purple-600 transition">← Quay lại</button>
+                        ) : (
+                            onCancel && <button type="button" onClick={onCancel} className="px-6 py-2.5 font-bold text-gray-400 hover:text-red-500 transition">Hủy</button>
                         )}
                     </div>
-                    <button type="button" onClick={addVariant}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition ml-4 shrink-0">
-                        <span className="text-lg leading-none">+</span> Thêm biến thể
-                    </button>
-                </div>
-
-                <div className="space-y-3">
-                    {variants.map((v, varIdx) => (
-                        <div key={varIdx} className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
-                            {/* Xóa biến thể */}
-                            <button type="button" onClick={() => removeVariant(varIdx)}
-                                disabled={variants.length === 1}
-                                className="absolute top-3 right-3 text-red-400 hover:text-red-600 disabled:opacity-30 text-lg leading-none">×</button>
-
-                            <p className="text-xs font-semibold text-gray-500 mb-3">
-                                Biến thể {varIdx + 1}
-                                {v.variantLabel && (
-                                    <span className="ml-2 text-blue-600 font-normal">— {v.variantLabel}</span>
-                                )}
-                            </p>
-
-                            {/* Attributes linh hoạt */}
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                {Object.entries(v.attributes).map(([key, val]) => (
-                                    <div key={key} className="flex items-center gap-1 bg-white border border-gray-200 rounded px-2 py-1">
-                                        {/* Tên thuộc tính */}
-                                        <input
-                                            type="text" value={key}
-                                            onChange={e => renameAttrKey(varIdx, key, e.target.value)}
-                                            className="outline-none w-24 text-xs text-gray-500 font-medium bg-transparent"
-                                            placeholder="Tên (VD: Màu)"
-                                        />
-                                        <span className="text-gray-300">:</span>
-                                        {/* Giá trị */}
-                                        <input
-                                            type="text" value={val}
-                                            onChange={e => updateAttr(varIdx, key, e.target.value)}
-                                            className="outline-none w-24 text-xs text-gray-800 bg-transparent"
-                                            placeholder="Giá trị"
-                                        />
-                                        <button type="button" onClick={() => removeAttr(varIdx, key)}
-                                            className="text-gray-300 hover:text-red-500 ml-1 leading-none">×</button>
-                                    </div>
-                                ))}
-
-                                {/* Thêm attribute mới */}
-                                <button type="button"
-                                    onClick={() => {
-                                        const key = `Thuộc tính ${Object.keys(v.attributes).length + 1}`;
-                                        addAttrToVariant(varIdx, key);
-                                    }}
-                                    className="flex items-center gap-1 text-xs px-2 py-1 bg-white border border-dashed border-gray-300 text-gray-400 rounded hover:border-blue-400 hover:text-blue-500 transition">
-                                    <span>+</span> Thêm thuộc tính
-                                </button>
-                            </div>
-
-                            {/* Label hiển thị cho khách */}
-                            <div className="flex items-center gap-2 mb-3">
-                                <span className="text-xs text-gray-500 shrink-0">Hiển thị với khách:</span>
-                                <input
-                                    type="text" value={v.variantLabel}
-                                    onChange={e => updateVariant(varIdx, 'variantLabel', e.target.value)}
-                                    className="flex-1 outline-none py-1 px-2 text-sm border border-gray-300 rounded bg-white"
-                                    placeholder="VD: Đen - 256GB (tự động từ thuộc tính)"
-                                />
-                            </div>
-
-                            {/* Giá + Kho */}
-                            <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                    <label className="text-xs text-gray-500 block mb-1">Giá gốc (₫) *</label>
-                                    <input type="number" min="0" value={v.price}
-                                        onChange={e => updateVariant(varIdx, 'price', e.target.value)}
-                                        className="w-full outline-none py-1.5 px-2 border border-gray-300 rounded text-sm bg-white" required />
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 block mb-1">Giá ưu đãi (₫) *</label>
-                                    <input type="number" min="0" value={v.offerPrice}
-                                        onChange={e => updateVariant(varIdx, 'offerPrice', e.target.value)}
-                                        className="w-full outline-none py-1.5 px-2 border border-gray-300 rounded text-sm bg-white" required />
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500 block mb-1">Tồn kho</label>
-                                    <input type="number" min="0" value={v.inStock}
-                                        onChange={e => updateVariant(varIdx, 'inStock', e.target.value)}
-                                        className="w-full outline-none py-1.5 px-2 border border-gray-300 rounded text-sm bg-white" />
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Preview tổng */}
-                {minOfferPrice > 0 && (
-                    <div className="mt-3 text-xs text-gray-500 flex gap-4 bg-blue-50 border border-blue-100 rounded px-3 py-2">
-                        <span>💰 Giá hiển thị: <strong className="text-red-600">
-                            {variants.length > 1 ? 'Từ ' : ''}
-                            {new Intl.NumberFormat('vi-VN').format(minOfferPrice)}₫
-                        </strong></span>
-                        <span>📦 Tổng tồn kho: <strong>{totalStock}</strong></span>
-                        <span>🏷️ {variants.length} biến thể</span>
+                    <div className="flex gap-4 items-center">
+                        {step < 4 && !initialData && (
+                            <span className="text-xs font-bold text-green-500 flex items-center gap-1 object-pulse">
+                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Draft saved
+                            </span>
+                        )}
+                        {step < 4 ? (
+                            <button type="submit" className="px-8 py-2.5 bg-purple-600 text-white font-bold rounded-lg shadow-md hover:bg-purple-700 hover:shadow-lg transition">
+                                Tiếp tục
+                            </button>
+                        ) : (
+                            <button type="submit" disabled={loading} className="px-10 py-3 bg-orange-500 text-white font-bold rounded-lg shadow-lg hover:bg-orange-600 focus:ring-4 focus:ring-orange-200 transition disabled:opacity-50">
+                                {loading ? "Đang xử lý..." : "🔥 Hoàn tất xuất bản"}
+                            </button>
+                        )}
                     </div>
-                )}
-            </div>
+                </div>
 
-            {/* ── Submit ── */}
-            <div className="flex gap-4 pt-2">
-                <button type="submit" disabled={loading}
-                    className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded transition disabled:bg-gray-400">
-                    {loading ? 'Đang lưu...' : (initialData ? 'Cập nhật sản phẩm' : 'Thêm sản phẩm')}
-                </button>
-                {onCancel && (
-                    <button type="button" onClick={onCancel}
-                        className="px-8 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded transition">
-                        Hủy
-                    </button>
-                )}
-            </div>
-        </form>
+            </form>
+        </div>
     );
 };
 

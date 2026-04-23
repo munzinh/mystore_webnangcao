@@ -97,7 +97,9 @@ const ProductList = () => {
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
             const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchCategory = filterCategory ? p.category === filterCategory : true;
+            const catId = typeof p.category === 'object' ? p.category?._id : p.category;
+            const matchCategory = filterCategory ? catId === filterCategory : true;
+
             let matchStatus = true;
             if (filterStatus === 'inStock') matchStatus = p.inStock === true;
             if (filterStatus === 'outOfStock') matchStatus = p.inStock === false;
