@@ -17,6 +17,8 @@ import SellerLayout from './pages/seller/SellerLayout';
 import AddProduct from './pages/seller/AddProduct';
 import ProductList from './pages/seller/ProductList';
 import Orders from './pages/seller/Orders';
+import ManageCategories from './pages/seller/ManageCategories';
+import ManageBrands from './pages/seller/ManageBrands';
 import Loading from './components/Loading';
 import OnlinePaymentPolicy from './pages/OnlinePaymentPolicy';
 import DeliveryPolicy from './pages/DeliveryPolicy';
@@ -51,6 +53,8 @@ const App = () => {
                         <Route index element={<AddProduct />} />
                         <Route path='product-list' element={<ProductList />} />
                         <Route path='orders' element={<Orders />} />
+                        <Route path='categories' element={<ManageCategories />} />
+                        <Route path='brands' element={<ManageBrands />} />
                     </Route>
                 </Routes>
             </div>

@@ -61,3 +61,36 @@ export const getCategoryTree = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
+
+// Update category
+export const updateCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, parentId, suggestedAttributes, isActive } = req.body;
+
+        const category = await Category.findByIdAndUpdate(
+            id,
+            { name, parentId: parentId || null, suggestedAttributes, isActive },
+            { new: true, runValidators: true }
+        );
+
+        if (!category) return res.json({ success: false, message: 'Category not found' });
+        res.json({ success: true, message: 'Category updated', category });
+    } catch (error) {
+        console.error("Update category error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// Delete category
+export const deleteCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deleted = await Category.findByIdAndDelete(id);
+        if (!deleted) return res.json({ success: false, message: 'Category not found' });
+        res.json({ success: true, message: 'Category deleted' });
+    } catch (error) {
+        console.error("Delete category error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};

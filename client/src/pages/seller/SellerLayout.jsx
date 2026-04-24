@@ -11,6 +11,8 @@ const SellerLayout = () => {
         { name: "Thêm sản phẩm", path: "/seller", icon: assets.add_icon },
         { name: "Danh sách sản phẩm", path: "/seller/product-list", icon: assets.product_list_icon },
         { name: "Đơn hàng", path: "/seller/orders", icon: assets.order_icon },
+        { name: "Danh mục", path: "/seller/categories", icon: null, emoji: "📂" },
+        { name: "Thương hiệu", path: "/seller/brands", icon: null, emoji: "🏷️" },
     ];
 
     const logout = async () => {
@@ -51,7 +53,10 @@ const SellerLayout = () => {
                                 `flex items-center py-3 px-4 gap-3 
                     ${isActive ? "border-r-4 md:border-r-[6px] bg-[#d70018]/10 border-[#d70018] text-[#d70018]" : "hover:bg-gray-100/90 border-white"}`}
                         >
-                            <img src={item.icon} alt="" className="w-7 h-7" />
+                            {item.icon
+                                ? <img src={item.icon} alt="" className="w-7 h-7" />
+                                : <span className="w-7 h-7 flex items-center justify-center text-xl">{item.emoji}</span>
+                            }
                             <p className="md:block hidden text-center">{item.name}</p>
                         </NavLink>
                     ))}

@@ -30,3 +30,36 @@ export const getBrands = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
+
+// Update brand
+export const updateBrand = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, logo, isActive } = req.body;
+
+        const brand = await Brand.findByIdAndUpdate(
+            id,
+            { name, logo, isActive },
+            { new: true, runValidators: true }
+        );
+
+        if (!brand) return res.json({ success: false, message: 'Brand not found' });
+        res.json({ success: true, message: 'Brand updated', brand });
+    } catch (error) {
+        console.error("Update brand error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// Delete brand
+export const deleteBrand = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deleted = await Brand.findByIdAndDelete(id);
+        if (!deleted) return res.json({ success: false, message: 'Brand not found' });
+        res.json({ success: true, message: 'Brand deleted' });
+    } catch (error) {
+        console.error("Delete brand error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
