@@ -17,7 +17,7 @@ const trackPurchaseEvents = async (userId, items) => {
         }));
         await UserBehavior.insertMany(events);
     } catch (err) {
-        console.log('Behavior track error:', err.message);
+        console.error('Behavior track error:', err.message);
     }
 };
 
@@ -35,7 +35,8 @@ const getAddressSnapshot = async (addressId) => {
             zipcode: String(addr.zipcode),
             country: addr.country,
         };
-    } catch {
+    } catch (error) {
+        console.error('Snapshot address error:', error.message);
         return {};
     }
 };

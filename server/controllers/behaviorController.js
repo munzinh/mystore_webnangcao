@@ -48,7 +48,7 @@ export const trackEvent = async (req, res) => {
 
         return res.json({ success: true });
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };
@@ -64,7 +64,7 @@ export const getUserBehaviors = async (req, res) => {
 
         return res.json({ success: true, behaviors });
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };

@@ -18,12 +18,12 @@ const ProductCard = ({ product }) => {
     const formatCurrency = (amount) =>
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
-    const hasVariants  = product.variants && product.variants.length > 0;
+    const hasVariants = product.variants && product.variants.length > 0;
     const variantCount = hasVariants ? product.variants.length : 0;
 
     // Giá hiển thị — lấy từ variants nếu có
     const displayOfferPrice = getMinPrice(product, 'offerPrice');
-    const displayPrice      = getMinPrice(product, 'price');
+    const displayPrice = getMinPrice(product, 'price');
 
     const discountPercent = displayPrice > displayOfferPrice
         ? Math.round(((displayPrice - displayOfferPrice) / displayPrice) * 100)
@@ -32,7 +32,8 @@ const ProductCard = ({ product }) => {
     return product && (
         <div
             onClick={() => {
-                navigate(`/products/${product.category.toLowerCase()}/${product._id}`);
+                const cat = product.category?.slug || product.category?.name || product.category;
+                navigate(`/products/${cat.toLowerCase()}/${product._id}`);
                 scrollTo(0, 0);
             }}
             className="group relative border border-gray-100 rounded-xl p-2.5 bg-white w-full hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full cursor-pointer"
@@ -64,10 +65,10 @@ const ProductCard = ({ product }) => {
             <div className="text-gray-500/70 text-sm flex flex-col gap-1 flex-grow">
                 {/* Category + Brand */}
                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                    <p className="text-[11px] truncate">{product.category}</p>
+                    <p className="text-[11px] truncate">{product.category?.name || product.category}</p>
                     {product.brand && (
                         <span className="text-[10px] bg-gray-50 border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
-                            {product.brand}
+                            {product.brand?.name || product.brand}
                         </span>
                     )}
                 </div>
@@ -89,9 +90,9 @@ const ProductCard = ({ product }) => {
                     {/* Stars */}
                     <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((star) => {
-                            const avg    = product.avgRating || 0;
+                            const avg = product.avgRating || 0;
                             const filled = avg >= star;
-                            const half   = !filled && avg >= star - 0.5;
+                            const half = !filled && avg >= star - 0.5;
                             const gradId = `hg-${product._id}-${star}`;
                             return (
                                 <svg key={star} className="w-3.5 h-3.5" viewBox="0 0 20 20">

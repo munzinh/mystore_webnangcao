@@ -59,7 +59,7 @@ export const addReview = async (req, res) => {
         if (error.code === 11000) {
             return res.json({ success: false, message: 'Bạn đã đánh giá sản phẩm này rồi' });
         }
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };
@@ -94,7 +94,7 @@ export const getReviews = async (req, res) => {
             distribution
         });
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };
@@ -108,7 +108,7 @@ export const getUserReview = async (req, res) => {
         const review = await Review.findOne({ userId, productId });
         res.json({ success: true, review: review || null });
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };
@@ -134,7 +134,7 @@ export const deleteReview = async (req, res) => {
 
         res.json({ success: true, message: 'Đã xóa đánh giá thành công' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };

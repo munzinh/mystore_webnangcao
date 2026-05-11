@@ -22,7 +22,7 @@ export const sellerLogin = async (req, res)=>{
         return res.json({ success: false, message: "Thông tin đăng nhập không hợp lệ"});
     }
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }
@@ -32,7 +32,7 @@ export const isSellerAuth = async(req, res)=>{
     try{
         return res.json({success: true,sellerEmail: req.sellerEmail});
     }catch (error){
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }
@@ -49,7 +49,7 @@ export const sellerLogout = async(req,res)=>{
         });
         return res.json({success: true, message: "Đã đăng xuất"})
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }

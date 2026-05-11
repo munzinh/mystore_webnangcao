@@ -31,7 +31,7 @@ export const register = async (req, res)=>{
 
         return res.json({success: true, user: {email: user.email, name: user.name}})
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }
@@ -65,7 +65,7 @@ export const login = async (req, res)=>{
 
         return res.json({success: true, user: {email: user.email, name: user.name}})
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }
@@ -79,7 +79,7 @@ export const isAuth = async(req, res)=>{
         return res.json({success: true, user})
         
     }catch (error){
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }
@@ -95,7 +95,7 @@ export const logout = async(req,res)=>{
         });
         return res.json({success: true, message: "Đã đăng xuất"})
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }

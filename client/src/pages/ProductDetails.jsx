@@ -108,11 +108,12 @@ const ProductDetails = () => {
         <div className="mt-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-screen-xl mx-auto">
 
-                {/* Breadcrumb */}
                 <p className="text-sm text-gray-600">
                     <Link to="/">Home</Link>{" "}/{" "}
                     <Link to="/products">Products</Link>{" "}/{" "}
-                    <Link to={`/products/${product.category.toLowerCase()}`}>{product.category}</Link>{" "}/{" "}
+                    <Link to={`/products/${(product.category?.slug || product.category?.name || product.category)?.toLowerCase()}`}>
+                        {product.category?.name || product.category}
+                    </Link>{" "}/{" "}
                     <span className="text-[#d70018]">{product.name}</span>
                 </p>
 
