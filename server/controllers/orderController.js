@@ -17,7 +17,7 @@ const trackPurchaseEvents = async (userId, items) => {
         }));
         await UserBehavior.insertMany(events);
     } catch (err) {
-        console.error('Behavior track error:', err.message);
+        console.error('Lỗi ghi nhận hành vi mua hàng:', err.message);
     }
 };
 
@@ -36,7 +36,7 @@ const getAddressSnapshot = async (addressId) => {
             country: addr.country,
         };
     } catch (error) {
-        console.error('Snapshot address error:', error.message);
+        console.error('Lỗi lấy địa chỉ giao hàng:', error.message);
         return {};
     }
 };
@@ -236,7 +236,7 @@ export const stripeWebhooks = async (req, res) => {
         }
 
         default:
-            console.error(`Unhandled event type ${event.type}`);
+            console.error(`Loại sự kiện chưa xử lý: ${event.type}`);
             break;
     }
     res.json({ received: true });

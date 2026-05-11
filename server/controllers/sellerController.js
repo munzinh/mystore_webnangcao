@@ -10,10 +10,10 @@ export const sellerLogin = async (req, res)=>{
         const token = jwt.sign({email}, process.env.JWT_SECRET, {expiresIn: '7d'});
 
         res.cookie('sellerToken',token, {
-            httpOnly: true, //Prevent JavaScript to access cookie
-            secure: process.env.NODE_ENV === 'production', //Use secure cookies in production
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', //CSRF protection
-            maxAge: 7*24*60*60*1000, //Cookie expiration time
+            httpOnly: true, // Ngăn JavaScript truy cập cookie
+            secure: process.env.NODE_ENV === 'production', // Dùng cookie bảo mật trong môi trường production
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', // Bảo vệ CSRF
+            maxAge: 7*24*60*60*1000, // Thời gian hết hạn cookie
         });
 
         return res.json({ success: true, message: "Đăng nhập thành công"});

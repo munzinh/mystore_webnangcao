@@ -62,7 +62,7 @@ export const AppContextProvider = ({ children }) => {
             }
         } catch (error) {
             console.error("Fetch products error:", error);
-            toast.error("Failed to load products")
+            toast.error("Không thể tải danh sách sản phẩm")
         } finally {
             setIsProductsLoading(false);
         }
@@ -78,7 +78,7 @@ export const AppContextProvider = ({ children }) => {
             carData[itemId] = 1;
         }
         setCartItems(carData);
-        toast.success("Added to cart")
+        toast.success("Đã thêm vào giỏ hàng")
         // Track add_to_cart behavior
         if (user) trackBehavior(itemId, 'add_to_cart');
     }
@@ -88,7 +88,7 @@ export const AppContextProvider = ({ children }) => {
         let cartData = structuredClone(cartItems);
         cartData[itemId] = quantity;
         setCartItems(cartData)
-        toast.success("cart updated")
+        toast.success("Đã cập nhật giỏ hàng")
     }
 
     // Remove from cart
@@ -100,7 +100,7 @@ export const AppContextProvider = ({ children }) => {
                 delete cartData[itemId];
             }
         }
-        toast.success("Removed from cart")
+        toast.success("Đã xóa khỏi giỏ hàng")
         setCartItems(cartData)
     }
 
