@@ -8,6 +8,7 @@ const SellerLayout = () => {
     const { axios, navigate } = useAppContext();
 
     const sidebarLinks = [
+        { name: "Tổng quan", path: "/seller/dashboard", icon: null, emoji: "📊" },
         { name: "Thêm sản phẩm", path: "/seller", icon: assets.add_icon },
         { name: "Danh sách sản phẩm", path: "/seller/product-list", icon: assets.product_list_icon },
         { name: "Đơn hàng", path: "/seller/orders", icon: assets.order_icon },

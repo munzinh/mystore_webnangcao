@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
+import toast from 'react-hot-toast';
 
 /* ─── Helpers ─────────────────────────────────────────────────── */
 const uid = () => `SKU-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
@@ -199,18 +200,18 @@ const ProductForm = ({ initialData, onSubmit, loading, onCancel }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (!form.name.trim()) return alert('Vui lòng nhập tên sản phẩm');
-        if (!form.category) return alert('Vui lòng chọn danh mục');
-        if (!form.brand) return alert('Vui lòng chọn thương hiệu');
-        if (!form.description.trim()) return alert('Vui lòng nhập mô tả');
+        if (!form.name.trim()) return toast.error('Vui lòng nhập tên sản phẩm');
+        if (!form.category) return toast.error('Vui lòng chọn danh mục');
+        if (!form.brand) return toast.error('Vui lòng chọn thương hiệu');
+        if (!form.description.trim()) return toast.error('Vui lòng nhập mô tả');
 
         const hasImage = imageFiles.some(Boolean) || imageUrls.some(Boolean);
-        if (!hasImage) return alert('Vui lòng thêm ít nhất 1 hình ảnh');
+        if (!hasImage) return toast.error('Vui lòng thêm ít nhất 1 hình ảnh');
 
         const variantsOk = form.variants.every(v =>
             v.variantLabel.trim() && Number(v.price) > 0 && Number(v.offerPrice) > 0
         );
-        if (!variantsOk) return alert('Vui lòng điền đầy đủ tên, giá gốc và giá khuyến mãi cho mỗi biến thể');
+        if (!variantsOk) return toast.error('Vui lòng điền đầy đủ tên, giá gốc và giá khuyến mãi cho mỗi biến thể');
 
         const payload = { ...form };
         payload.description = payload.description.split('\n').filter(Boolean);
@@ -451,27 +452,39 @@ const ProductForm = ({ initialData, onSubmit, loading, onCancel }) => {
                     Thêm biến thể
                 </button>
 
-                {/* Summary stats */}
+                {/* Summary stats - light theme */}
                 {form.variants.length > 0 && (
-                    <div className="mt-4 grid grid-cols-3 gap-3">
-                        <div className="bg-slate-800 rounded-xl p-3 text-center">
-                            <p className="text-2xl font-bold text-emerald-400">{form.variants.length}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Biến thể</p>
-                        </div>
-                        <div className="bg-slate-800 rounded-xl p-3 text-center">
-                            <p className="text-2xl font-bold text-blue-400">
+                    <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                        <span>
+                            <span className="font-semibold text-gray-800">{form.variants.length}</span> biến thể
+                        </span>
+                        <span className="text-gray-300">|</span>
+                        <span>
+                            Tồn kho: <span className="font-semibold text-gray-800">
                                 {form.variants.reduce((s, v) => s + Number(v.inStock || 0), 0).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-0.5">Tổng tồn kho</p>
-                        </div>
-                        <div className="bg-slate-800 rounded-xl p-3 text-center">
-                            <p className="text-2xl font-bold text-amber-400">
+                            </span>
+                        </span>
+                        <span className="text-gray-300">|</span>
+                        <span>
+                            Giá từ: <span className="font-semibold text-[#d70018]">
                                 {form.variants[0]?.offerPrice
                                     ? `${Number(form.variants[0].offerPrice).toLocaleString()}₫`
                                     : '—'}
-                            </p>
-                            <p className="text-xs text-slate-400 mt-0.5">Giá từ</p>
-                        </div>
+                            </span>
+                        </span>
+                        {(() => {
+                            const v = form.variants[0];
+                            const price = Number(v?.price || 0);
+                            const offer = Number(v?.offerPrice || 0);
+                            if (price > offer && offer > 0) {
+                                const pct = Math.round((1 - offer / price) * 100);
+                                return (
+                                    <><span className="text-gray-300">|</span>
+                                    <span className="text-green-600 font-semibold">Giảm {pct}%</span></>
+                                );
+                            }
+                            return null;
+                        })()}
                     </div>
                 )}
             </Card>

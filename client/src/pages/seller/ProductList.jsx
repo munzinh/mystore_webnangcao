@@ -120,9 +120,28 @@ const ProductList = () => {
     }, [products, searchQuery, filterCategory, filterStatus, sortBy]);
 
     return (
-        <div className="flex-1 h-[95vh] overflow-y-scroll flex flex-col pt-4 md:pt-10 px-4 md:px-10 pb-10">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-medium">Danh sách sản phẩm</h2>
+        <div className="flex-1 h-[95vh] overflow-y-scroll flex flex-col pt-4 md:pt-8 px-4 md:px-8 pb-10">
+            <div className="flex justify-between items-center mb-5">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800">Danh sách sản phẩm</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">Quản lý tồn kho và thông tin sản phẩm</p>
+                </div>
+            </div>
+
+            {/* Stats nhanh */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="bg-white rounded-xl border border-gray-200 p-3">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tổng SP</p>
+                    <p className="text-2xl font-bold text-gray-800 mt-1">{products.length}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-3">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Còn hàng</p>
+                    <p className="text-2xl font-bold text-green-600 mt-1">{products.filter(p => p.inStock).length}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-3">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Hết hàng</p>
+                    <p className="text-2xl font-bold text-red-500 mt-1">{products.filter(p => !p.inStock).length}</p>
+                </div>
             </div>
 
             <ProductFilter

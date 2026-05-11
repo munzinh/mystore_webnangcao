@@ -20,6 +20,7 @@ import Orders from './pages/seller/Orders';
 import ManageCategories from './pages/seller/ManageCategories';
 import ManageBrands from './pages/seller/ManageBrands';
 import Loading from './components/Loading';
+import Dashboard from './pages/seller/Dashboard';
 import OnlinePaymentPolicy from './pages/OnlinePaymentPolicy';
 import DeliveryPolicy from './pages/DeliveryPolicy';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -51,6 +52,7 @@ const App = () => {
                     <Route path='/warranty-policy' element={<WarrantyPolicy />} />
                     <Route path='/seller' element={isSeller ? <SellerLayout /> : <SellerLogin />}>
                         <Route index element={<AddProduct />} />
+                        <Route path='dashboard' element={<Dashboard />} />
                         <Route path='product-list' element={<ProductList />} />
                         <Route path='orders' element={<Orders />} />
                         <Route path='categories' element={<ManageCategories />} />
