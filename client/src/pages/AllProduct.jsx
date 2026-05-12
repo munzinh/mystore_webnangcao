@@ -3,11 +3,10 @@ import { useAppContext } from '../context/AppContext';
 import ProductFilter from '../components/ProductFilter';
 import ProductGrid from '../components/ProductGrid';
 import { filterAndSortProducts } from '../utils/filterUtils';
-import { categories } from '../assets/assets';
 
 const AllProduct = () => {
 
-    const { products, isProductsLoading, searchQuery } = useAppContext();
+    const { products, isProductsLoading, searchQuery, categories } = useAppContext();
     const [filteredProducts, setFilteredProducts] = useState([]);
 
     // Filter State

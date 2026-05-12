@@ -55,8 +55,8 @@ const ProductFilter = ({ filters, setFilters, sort, setSort, clearFilters, categ
                         onChange={handleCategoryChange}
                     >
                         <option value="all">Tất cả danh mục</option>
-                        {categories.map((cat, index) => (
-                            <option key={index} value={cat.path.toLowerCase()}>{cat.text}</option>
+                        {categories.map((cat) => (
+                            <option key={cat._id || cat.slug || cat.name} value={(cat.slug || cat._id || cat.name).toLowerCase()}>{cat.name}</option>
                         ))}
                     </select>
                 )}

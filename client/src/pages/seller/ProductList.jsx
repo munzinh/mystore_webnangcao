@@ -7,7 +7,7 @@ import ProductModal from '../../components/seller/ProductModal';
 import ProductForm from '../../components/seller/ProductForm';
 
 const ProductList = () => {
-    const { products, axios, fetchProducts } = useAppContext();
+    const { products, categories, axios, fetchProducts } = useAppContext();
 
     // Auto load data if products empty
     useEffect(() => {
@@ -19,8 +19,25 @@ const ProductList = () => {
     // Filter & Sort State
     const [searchQuery, setSearchQuery] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [filterBrand, setFilterBrand] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [sortBy, setSortBy] = useState('date-desc');
+    const [brands, setBrands] = useState([]);
+
+    const fetchBrands = async () => {
+        try {
+            const { data } = await axios.get('/api/brand/list');
+            if (data.success) {
+                setBrands(data.brands);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        fetchBrands();
+    }, []);
 
     // Modals State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -100,11 +117,14 @@ const ProductList = () => {
             const catId = typeof p.category === 'object' ? p.category?._id : p.category;
             const matchCategory = filterCategory ? catId === filterCategory : true;
 
+            const brandId = typeof p.brand === 'object' ? p.brand?._id : p.brand;
+            const matchBrand = filterBrand ? brandId === filterBrand : true;
+
             let matchStatus = true;
             if (filterStatus === 'inStock') matchStatus = p.inStock === true;
             if (filterStatus === 'outOfStock') matchStatus = p.inStock === false;
 
-            return matchSearch && matchCategory && matchStatus;
+            return matchSearch && matchCategory && matchBrand && matchStatus;
         }).sort((a, b) => {
             switch (sortBy) {
                 case 'price-asc': return a.offerPrice - b.offerPrice;
@@ -117,7 +137,7 @@ const ProductList = () => {
                     return new Date(b.createdAt) - new Date(a.createdAt);
             }
         });
-    }, [products, searchQuery, filterCategory, filterStatus, sortBy]);
+    }, [products, searchQuery, filterCategory, filterBrand, filterStatus, sortBy]);
 
     return (
         <div className="flex-1 h-[95vh] overflow-y-scroll flex flex-col pt-4 md:pt-8 px-4 md:px-8 pb-10">
@@ -156,8 +176,11 @@ const ProductList = () => {
             <ProductFilter
                 searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                 filterCategory={filterCategory} setFilterCategory={setFilterCategory}
+                filterBrand={filterBrand} setFilterBrand={setFilterBrand}
                 filterStatus={filterStatus} setFilterStatus={setFilterStatus}
                 sortBy={sortBy} setSortBy={setSortBy}
+                categories={categories}
+                brands={brands}
             />
 
             <ProductTable

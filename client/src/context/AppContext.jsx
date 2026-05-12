@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -19,6 +18,8 @@ export const AppContextProvider = ({ children }) => {
     const [showUserLogin, setShowUserLogin] = useState(false)
     const [products, setProducts] = useState([])
     const [isProductsLoading, setIsProductsLoading] = useState(true)
+    const [categories, setCategories] = useState([])
+    const [isCategoriesLoading, setIsCategoriesLoading] = useState(true)
 
     const [cartItems, setCartItems] = useState([])
     const [searchQuery, setSearchQuery] = useState([])
@@ -32,7 +33,7 @@ export const AppContextProvider = ({ children }) => {
             } else {
                 setIsSeller(false);
             }
-        } catch (error) {
+        } catch {
             setIsSeller(false);
         }
     }
@@ -45,7 +46,7 @@ export const AppContextProvider = ({ children }) => {
                 setUser(data.user);
                 setCartItems(data.user.cartItems);
             }
-        } catch (error) {
+        } catch {
             setUser(null)
         }
     }
@@ -65,6 +66,24 @@ export const AppContextProvider = ({ children }) => {
             toast.error("Không thể tải danh sách sản phẩm")
         } finally {
             setIsProductsLoading(false);
+        }
+    }
+
+    // Fetch categories from the same source used by seller management
+    const fetchCategories = async () => {
+        setIsCategoriesLoading(true);
+        try {
+            const { data } = await axios.get('/api/category/list');
+            if (data.success) {
+                setCategories((data.categories || []).filter(category => category.isActive !== false));
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.error("Fetch categories error:", error);
+            toast.error("Không thể tải danh mục")
+        } finally {
+            setIsCategoriesLoading(false);
         }
     }
 
@@ -129,6 +148,7 @@ export const AppContextProvider = ({ children }) => {
         fetchUser()
         fetchSeller()
         fetchProducts()
+        fetchCategories()
     }, [])
 
     // Track user behavior
@@ -136,7 +156,7 @@ export const AppContextProvider = ({ children }) => {
         if (!user) return;
         try {
             await axios.post('/api/behavior/track', { productId, eventType, metadata });
-        } catch (error) {
+        } catch {
             // Silent fail - không ảnh hưởng UX
         }
     };
@@ -166,7 +186,7 @@ export const AppContextProvider = ({ children }) => {
         navigate, user, setUser, setIsSeller, isSeller, showUserLogin,
         setShowUserLogin, products, isProductsLoading, currency, addToCart, updateCartItem, removeFromCart,
         cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount, axios, fetchProducts,
-        setCartItems, trackBehavior
+        categories, isCategoriesLoading, fetchCategories, setCartItems, trackBehavior
     }
 
     return <AppContext.Provider value={value}>
