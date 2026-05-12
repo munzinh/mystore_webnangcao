@@ -108,7 +108,7 @@ const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
                                     {/* Giá ưu đãi (min) */}
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <span className="text-red-600 font-medium">
-                                            {hasVariants ? 'Từ ' : ''}{fmt(minPrice)}₫
+                                            {fmt(minPrice)}₫
                                         </span>
                                     </td>
 

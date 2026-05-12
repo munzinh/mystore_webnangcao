@@ -78,7 +78,7 @@ const ProductCard = ({ product }) => {
                 {/* Giá */}
                 <div className="flex flex-col mt-auto pt-2">
                     <p className="text-base font-bold text-[#d70018] leading-tight">
-                        {hasVariants ? 'Từ ' : ''}{formatCurrency(displayOfferPrice)}
+                        {formatCurrency(displayOfferPrice)}
                     </p>
                     <p className="text-gray-400 text-xs line-through leading-tight mt-0.5">
                         {displayPrice > displayOfferPrice ? formatCurrency(displayPrice) : '\u00A0'}

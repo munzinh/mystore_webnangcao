@@ -466,7 +466,7 @@ const ProductForm = ({ initialData, onSubmit, loading, onCancel }) => {
                         </span>
                         <span className="text-gray-300">|</span>
                         <span>
-                            Giá từ: <span className="font-semibold text-[#d70018]">
+                            Giá: <span className="font-semibold text-[#d70018]">
                                 {form.variants[0]?.offerPrice
                                     ? `${Number(form.variants[0].offerPrice).toLocaleString()}₫`
                                     : '—'}
