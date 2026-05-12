@@ -49,18 +49,20 @@ const Home = () => {
   }, [user]);
 
   return (
-  <div className="flex justify-center px-4 mt-4">
-    <div className="w-full max-w-screen-xl px-1">
+  <div className="flex justify-center px-2 md:px-0">
+    <div className="w-full max-w-[1200px]">
 
-      <Marquee />
+      <div className="mb-4">
+        <Marquee />
+      </div>
 
       {/* 👇 layout ngang */}
-      <div className="home-top flex gap-4">
-        <div className="w-1/4">
+      <div className="home-top flex flex-col md:flex-row gap-4 mb-6">
+        <div className="w-full md:w-[250px] shrink-0 hidden md:block">
           <Categories />
         </div>
 
-        <div className="w-3/4">
+        <div className="flex-1 overflow-hidden min-w-0">
           <MainBanner />
         </div>
       </div>

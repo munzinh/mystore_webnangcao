@@ -13,38 +13,39 @@ import orderRouter from './routes/orderRoute.js';
 import behaviorRouter from './routes/behaviorRoute.js';
 import recommendationRouter from './routes/recommendationRoute.js';
 import reviewRouter from './routes/reviewRoute.js';
+import categoryRouter from './routes/categoryRoute.js';
+import brandRouter from './routes/brandRoute.js';
 import { stripeWebhooks } from './controllers/orderController.js';
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-
-await connectDB()
+await connectDB();
 await connectCloudinary();
 
 //Allow multiple origins 
-const allowedOrigins = ['http://localhost:5173', 'https://mystore-webnangcao.vercel.app']
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'https://mystore-webnangcao.vercel.app'];
 
-app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks)
+app.post('/stripe', express.raw({ type: 'application/json' }), stripeWebhooks);
 
 //Middleware configuration
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
-
-
 app.get('/', (req, res) => res.send("API is Working"));
-app.use('/api/user', userRouter)
-app.use('/api/seller', sellerRouter)
-app.use('/api/product', productRouter)
-app.use('/api/cart', cartRouter)
-app.use('/api/address', addressRouter)
-app.use('/api/order', orderRouter)
-app.use('/api/behavior', behaviorRouter)
-app.use('/api/recommendations', recommendationRouter)
-app.use('/api/review', reviewRouter)
+app.use('/api/user', userRouter);
+app.use('/api/seller', sellerRouter);
+app.use('/api/product', productRouter);
+app.use('/api/category', categoryRouter);
+app.use('/api/brand', brandRouter);
+app.use('/api/cart', cartRouter);
+app.use('/api/address', addressRouter);
+app.use('/api/order', orderRouter);
+app.use('/api/behavior', behaviorRouter);
+app.use('/api/recommendations', recommendationRouter);
+app.use('/api/review', reviewRouter);
 
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`)
-})
+    console.log(`Server is running on http://localhost:${port}`);
+});

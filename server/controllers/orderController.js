@@ -17,7 +17,7 @@ const trackPurchaseEvents = async (userId, items) => {
         }));
         await UserBehavior.insertMany(events);
     } catch (err) {
-        console.log('Behavior track error:', err.message);
+        console.error('Lỗi ghi nhận hành vi mua hàng:', err.message);
     }
 };
 
@@ -35,7 +35,8 @@ const getAddressSnapshot = async (addressId) => {
             zipcode: String(addr.zipcode),
             country: addr.country,
         };
-    } catch {
+    } catch (error) {
+        console.error('Lỗi lấy địa chỉ giao hàng:', error.message);
         return {};
     }
 };
@@ -45,7 +46,7 @@ export const placeOrderCOD = async (req, res) => {
     try {
         const { items, address } = req.body;
         const userId = req.userId;
-        if (!address || items.length === 0) {
+        if (!address || !items || items.length === 0) {
             return res.json({ success: false, message: 'Dữ liệu không hợp lệ' });
         }
 
@@ -53,6 +54,7 @@ export const placeOrderCOD = async (req, res) => {
         let amount = 0;
         const itemsWithPrice = await Promise.all(items.map(async (item) => {
             const product = await Product.findById(item.product);
+            if (!product) throw new Error(`Sản phẩm không tồn tại: ${item.product}`);
             const unitPrice = product.offerPrice;
             amount += unitPrice * item.quantity;
             return {
@@ -79,6 +81,7 @@ export const placeOrderCOD = async (req, res) => {
         await trackPurchaseEvents(userId, items);
         return res.json({ success: true, message: 'Đặt hàng thành công' });
     } catch (error) {
+        console.error('placeOrderCOD error:', error.message);
         return res.json({ success: false, message: error.message });
     }
 }
@@ -90,7 +93,7 @@ export const placeOrderStripe = async (req, res) => {
         const userId = req.userId;
         const { origin } = req.headers;
 
-        if (!address || items.length === 0) {
+        if (!address || !items || items.length === 0) {
             return res.json({ success: false, message: 'Dữ liệu không hợp lệ' });
         }
 
@@ -100,6 +103,7 @@ export const placeOrderStripe = async (req, res) => {
         // Tính tiền VÀ lưu price_at_purchase cho từng item
         const itemsWithPrice = await Promise.all(items.map(async (item) => {
             const product = await Product.findById(item.product);
+            if (!product) throw new Error(`Sản phẩm không tồn tại: ${item.product}`);
             const unitPrice = product.offerPrice;
             amount += unitPrice * item.quantity;
             productData.push({
@@ -178,9 +182,9 @@ export const stripeWebhooks = async (req, res) => {
             req.body,
             sig,
             process.env.STRIPE_WEBHOOK_SECRET
-        )
+        );
     } catch (error) {
-        res.status(400).send(`Webhook Error: ${error.message}`);
+        return res.status(400).send(`Webhook Error: ${error.message}`);
     }
 
     //Handle the event
@@ -205,19 +209,15 @@ export const stripeWebhooks = async (req, res) => {
             break;
         }
         case 'checkout.session.completed': {
-            const paymentIntent = event.data.object;
-            const paymentIntentId = paymentIntent.id;
-
-            //Getting session metadata
-            const session = await stripeInstance.checkout.sessions.list({
-                payment_intent: paymentIntentId,
-            });
-
-            const { orderId, userId } = session.data[0].metadata;
-            //Mark payment as paid
-            await Order.findByIdAndUpdate(orderId, { isPaid: true })
-            //Clear user cart
-            await User.findByIdAndUpdate(userId, { cartItems: [] });
+            // Lấy metadata trực tiếp từ session (không cần list theo payment_intent)
+            const completedSession = event.data.object;
+            const { orderId, userId } = completedSession.metadata || {};
+            if (orderId) {
+                //Mark payment as paid
+                await Order.findByIdAndUpdate(orderId, { isPaid: true });
+                //Clear user cart
+                if (userId) await User.findByIdAndUpdate(userId, { cartItems: [] });
+            }
             break;
         }
 
@@ -236,7 +236,7 @@ export const stripeWebhooks = async (req, res) => {
         }
 
         default:
-            console.error(`Unhandled event type ${event.type}`);
+            console.error(`Loại sự kiện chưa xử lý: ${event.type}`);
             break;
     }
     res.json({ received: true });

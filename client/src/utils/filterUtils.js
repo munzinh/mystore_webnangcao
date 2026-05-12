@@ -3,7 +3,18 @@ export const filterAndSortProducts = (products, category, filters, sort) => {
 
     // Filter by category
     if (category && category !== 'all') {
-        result = result.filter(p => p.category.toLowerCase() === category.toLowerCase());
+        const target = category.toLowerCase();
+        result = result.filter(p => {
+            const productCategory = p.category || {};
+            const values = [
+                productCategory.slug,
+                productCategory._id,
+                productCategory.name,
+                typeof productCategory === 'string' ? productCategory : '',
+            ].filter(Boolean);
+
+            return values.some(value => value.toString().toLowerCase() === target);
+        });
     }
 
     // Filter by price

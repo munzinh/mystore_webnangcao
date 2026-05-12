@@ -20,7 +20,7 @@ export const trackEvent = async (req, res) => {
 
         const validEvents = ['view', 'add_to_cart', 'purchase', 'rating'];
         if (!validEvents.includes(eventType)) {
-            return res.json({ success: false, message: 'eventType không hợp lệ' });
+            return res.json({ success: false, message: 'Loại sự kiện không hợp lệ' });
         }
 
         const weight = EVENT_WEIGHTS[eventType] || 1.0;
@@ -33,7 +33,7 @@ export const trackEvent = async (req, res) => {
                 timestamp: { $gte: thirtyMinsAgo }
             });
             if (recent) {
-                return res.json({ success: true, message: 'Event đã được ghi nhận gần đây' });
+                return res.json({ success: true, message: 'Hoạt động đã được ghi nhận gần đây' });
             }
         }
 
@@ -48,7 +48,7 @@ export const trackEvent = async (req, res) => {
 
         return res.json({ success: true });
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };
@@ -64,7 +64,7 @@ export const getUserBehaviors = async (req, res) => {
 
         return res.json({ success: true, behaviors });
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({ success: false, message: error.message });
     }
 };

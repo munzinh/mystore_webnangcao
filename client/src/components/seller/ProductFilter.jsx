@@ -1,11 +1,13 @@
 import React from 'react';
-import { categories } from '../../assets/assets';
 
 const ProductFilter = ({
     searchQuery, setSearchQuery,
     filterCategory, setFilterCategory,
+    filterBrand, setFilterBrand,
     filterStatus, setFilterStatus,
-    sortBy, setSortBy
+    sortBy, setSortBy,
+    categories = [],
+    brands = []
 }) => {
     return (
         <div className="flex flex-col md:flex-row gap-4 mb-6 items-center justify-between w-full">
@@ -31,8 +33,19 @@ const ProductFilter = ({
                     className="outline-none py-2.5 px-3 rounded-lg border border-gray-300 text-sm flex-1 md:flex-none"
                 >
                     <option value="">Tất cả danh mục</option>
-                    {categories.map((item, index) => (
-                        <option key={index} value={item.name || item.path}>{item.name || item.path}</option>
+                    {categories.map((item) => (
+                        <option key={item._id} value={item._id}>{item.name}</option>
+                    ))}
+                </select>
+
+                <select
+                    value={filterBrand}
+                    onChange={(e) => setFilterBrand(e.target.value)}
+                    className="outline-none py-2.5 px-3 rounded-lg border border-gray-300 text-sm flex-1 md:flex-none"
+                >
+                    <option value="">Tất cả thương hiệu</option>
+                    {brands.map((item) => (
+                        <option key={item._id} value={item._id}>{item.name}</option>
                     ))}
                 </select>
 

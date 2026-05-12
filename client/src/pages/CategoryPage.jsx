@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useParams } from 'react-router-dom';
-import { categories } from '../assets/assets';
 import ProductFilter from '../components/ProductFilter';
 import ProductGrid from '../components/ProductGrid';
 import { filterAndSortProducts } from '../utils/filterUtils';
 
 const CategoryPage = () => {
-    const { products } = useAppContext();
+    const { products, categories } = useAppContext();
     const { category } = useParams();
 
     const [filteredProducts, setFilteredProducts] = useState([]);
@@ -40,7 +39,9 @@ const CategoryPage = () => {
     }, [products, category, filters, sort]);
 
     const searchCategory = categories.find(
-        (item) => item.path.toLowerCase() === category?.toLowerCase()
+        (item) =>
+            item.slug?.toLowerCase() === category?.toLowerCase() ||
+            item.name?.toLowerCase() === category?.toLowerCase()
     );
 
     return (
@@ -48,7 +49,7 @@ const CategoryPage = () => {
             {searchCategory && (
                 <div className="flex flex-col items-end w-max mb-6">
                     <p className="text-2xl font-medium uppercase">
-                        {searchCategory.text}
+                        {searchCategory.name}
                     </p>
                     <div className="w-16 h-0.5 bg-[#d70018] rounded-full mt-1" />
                 </div>

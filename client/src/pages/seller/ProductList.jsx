@@ -7,20 +7,37 @@ import ProductModal from '../../components/seller/ProductModal';
 import ProductForm from '../../components/seller/ProductForm';
 
 const ProductList = () => {
-    const { products, axios, fetchProducts } = useAppContext();
+    const { products, categories, axios, fetchProducts } = useAppContext();
 
     // Auto load data if products empty
     useEffect(() => {
         if (products.length === 0) {
             fetchProducts();
         }
-    }, [])
+    }, [fetchProducts])
 
     // Filter & Sort State
     const [searchQuery, setSearchQuery] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    const [filterBrand, setFilterBrand] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [sortBy, setSortBy] = useState('date-desc');
+    const [brands, setBrands] = useState([]);
+
+    const fetchBrands = async () => {
+        try {
+            const { data } = await axios.get('/api/brand/list');
+            if (data.success) {
+                setBrands(data.brands);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        fetchBrands();
+    }, []);
 
     // Modals State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -97,12 +114,17 @@ const ProductList = () => {
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
             const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchCategory = filterCategory ? p.category === filterCategory : true;
+            const catId = typeof p.category === 'object' ? p.category?._id : p.category;
+            const matchCategory = filterCategory ? catId === filterCategory : true;
+
+            const brandId = typeof p.brand === 'object' ? p.brand?._id : p.brand;
+            const matchBrand = filterBrand ? brandId === filterBrand : true;
+
             let matchStatus = true;
             if (filterStatus === 'inStock') matchStatus = p.inStock === true;
             if (filterStatus === 'outOfStock') matchStatus = p.inStock === false;
 
-            return matchSearch && matchCategory && matchStatus;
+            return matchSearch && matchCategory && matchBrand && matchStatus;
         }).sort((a, b) => {
             switch (sortBy) {
                 case 'price-asc': return a.offerPrice - b.offerPrice;
@@ -115,19 +137,50 @@ const ProductList = () => {
                     return new Date(b.createdAt) - new Date(a.createdAt);
             }
         });
-    }, [products, searchQuery, filterCategory, filterStatus, sortBy]);
+    }, [products, searchQuery, filterCategory, filterBrand, filterStatus, sortBy]);
 
     return (
-        <div className="flex-1 h-[95vh] overflow-y-scroll flex flex-col pt-4 md:pt-10 px-4 md:px-10 pb-10">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-medium">Danh sách sản phẩm</h2>
+        <div className="flex-1 h-[95vh] overflow-y-scroll flex flex-col pt-4 md:pt-8 px-4 md:px-8 pb-10">
+            <div className="flex justify-between items-center mb-5">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800">Danh sách sản phẩm</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">Quản lý tồn kho và thông tin sản phẩm</p>
+                </div>
+                <button
+                    onClick={() => fetchProducts()}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Làm mới
+                </button>
+            </div>
+
+            {/* Stats nhanh */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="bg-white rounded-xl border border-gray-200 p-3">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tổng SP</p>
+                    <p className="text-2xl font-bold text-gray-800 mt-1">{products.length}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-3">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Còn hàng</p>
+                    <p className="text-2xl font-bold text-green-600 mt-1">{products.filter(p => p.inStock).length}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-3">
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Hết hàng</p>
+                    <p className="text-2xl font-bold text-red-500 mt-1">{products.filter(p => !p.inStock).length}</p>
+                </div>
             </div>
 
             <ProductFilter
                 searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                 filterCategory={filterCategory} setFilterCategory={setFilterCategory}
+                filterBrand={filterBrand} setFilterBrand={setFilterBrand}
                 filterStatus={filterStatus} setFilterStatus={setFilterStatus}
                 sortBy={sortBy} setSortBy={setSortBy}
+                categories={categories}
+                brands={brands}
             />
 
             <ProductTable

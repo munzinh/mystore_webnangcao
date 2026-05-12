@@ -1,7 +1,6 @@
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import UserBehavior from "../models/UserBehavior.js";
-import Recommendation from "../models/Recommendation.js";
 import mongoose from "mongoose";
 import axios from "axios";
 import pkg from 'natural';
@@ -15,17 +14,21 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
 // Đồng nhất với productController: dùng brand, category, tags, price range
 // ─────────────────────────────────────────────────────────
 const contentBasedFallback = async (productId, topN = 8) => {
-    const products = await Product.find({ inStock: true });
+    const products = await Product.find({ inStock: true })
+        .populate('category', 'name')
+        .populate('brand', 'name');
     const tfidf = new TfIdf();
 
     const documents = products.map(p => {
         const descText = Array.isArray(p.description) ? p.description.join(' ') : String(p.description);
         const tagsText = Array.isArray(p.tags) ? p.tags.join(' ') : '';
+        const catName = p.category?.name || p.category || '';
+        const brandName = p.brand?.name || p.brand || '';
         const priceRange = p.offerPrice < 5000000 ? 'gia_re' :
                            p.offerPrice < 15000000 ? 'gia_trung' :
                            p.offerPrice < 30000000 ? 'gia_cao' : 'gia_cao_cap';
         // Kết hợp đầy đủ: name + category + brand + tags + description + price range
-        return `${p.name} ${p.category} ${p.brand || ''} ${tagsText} ${descText} ${priceRange}`;
+        return `${p.name} ${catName} ${brandName} ${tagsText} ${descText} ${priceRange}`;
     });
     documents.forEach(doc => tfidf.addDocument(doc));
 
@@ -81,7 +84,7 @@ export const getSimilarProducts = async (req, res) => {
         const recommendations = await contentBasedFallback(productId);
         return res.json({ success: true, recommendations, source: 'fallback' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -123,7 +126,7 @@ export const getUserRecommendations = async (req, res) => {
 
         return res.json({ success: true, recommendations: filtered, source: 'fallback_cb' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -173,7 +176,7 @@ export const getTrendingProducts = async (req, res) => {
             .limit(12);
         return res.json({ success: true, recommendations: latestProducts, source: 'latest' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -234,7 +237,7 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
 
         return res.json({ success: true, recommendations: products, source: 'co_occurrence' });
     } catch (error) {
-        console.log(error.message);
+        console.error(error);
         res.json({ success: false, message: error.message });
     }
 };

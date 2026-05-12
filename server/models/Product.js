@@ -1,64 +1,58 @@
 import mongoose from "mongoose";
 
-// Schema cho từng biến thể sản phẩm — thiết kế linh hoạt cho đồ điện tử
-//
-// VD 1 — Chỉ màu:
-//   attributes: { "Màu": "Đen" }
-//   variantLabel: "Đen"
-//
-// VD 2 — Màu + Dung lượng (điện thoại):
-//   attributes: { "Màu": "Titan Tự Nhiên", "ROM": "256GB" }
-//   variantLabel: "Titan Tự Nhiên - 256GB"
-//
-// VD 3 — RAM + SSD (laptop):
-//   attributes: { "RAM": "16GB", "SSD": "512GB" }
-//   variantLabel: "16GB RAM / 512GB SSD"
-//
-// VD 4 — Kích thước + Tần số (màn hình):
-//   attributes: { "Kích thước": "27\"", "Tần số": "144Hz" }
-//   variantLabel: "27\" 144Hz"
-//
 const variantSchema = new mongoose.Schema({
-    // Thông số linh hoạt dạng key-value — seller tự định nghĩa key phù hợp sản phẩm
+    sku: { type: String, unique: true, required: true },
     attributes: {
         type: Map,
         of: String,
-        default: {},
+        default: {}, // e.g. { "Color": "Red", "Storage": "128GB" }
     },
-    // Label hiển thị trên UI (seller nhập hoặc tự ghép từ attributes)
-    // VD: "Đen - 256GB", "16GB / 512GB", "Xanh dương"
     variantLabel: { type: String, default: '' },
-
-    price:      { type: Number, required: true },    // Giá gốc của biến thể
-    offerPrice: { type: Number, required: true },    // Giá ưu đãi
-    inStock:    { type: Number, default: 0 },        // Tồn kho (số lượng)
-}, { _id: false });
+    price: { type: Number, required: true },
+    offerPrice: { type: Number, required: true },
+    inStock: { type: Number, default: 0 },
+    images: { type: [String], default: [] } // Option for variant-specific imagery
+}, { _id: true, timestamps: true });
 
 const productSchema = new mongoose.Schema({
-    name:        { type: String, required: true },
-    description: { type: Array,  required: true },
-
-    // Giá & tồn kho global — tự động tính từ variants (lấy min), giữ làm fallback
-    price:      { type: Number, required: true },
+    name: { type: String, required: true },
+    description: { type: [String], required: true },
+    
+    // Base global values (calculated from variants when saving/updating)
+    price: { type: Number, required: true },
     offerPrice: { type: Number, required: true },
-    inStock:    { type: Boolean, default: true },
+    inStock: { type: Boolean, default: true },
 
-    image:    { type: Array,  required: true },
-    category: { type: String, required: true },     // "mobile", "laptop", "tablet", "accessory"
-    brand:    { type: String, default: '' },        // "Apple", "Samsung", "Dell"
-    specs:    { type: Object, default: {} },        // Thông số chung: { CPU, Screen, Battery }
-    tags:     { type: [String], default: [] },      // AI tags: ["5g", "gaming", "fast-charge"]
+    // Pricing & Scheduling logic 
+    discountPercentage: { type: Number, default: 0 }, 
+    flashSalePrice: { type: Number, default: null },
+    flashSaleStartTime: { type: Date, default: null },
+    flashSaleEndTime: { type: Date, default: null },
 
-    // Mảng biến thể — mỗi biến thể có attributes linh hoạt + giá + kho riêng
+    image: { type: [String], required: true }, // Global product images
+    
+    // Relationships
+    category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+    brand: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', required: true },
+
+    specs: { 
+        type: Map, 
+        of: String, 
+        default: {} 
+    }, // e.g {"Screen": "6.1 OLED", "Processor": "A16"}
+    
+    tags: { type: [String], default: [] },
+    
+    // Scalable variants matrix
     variants: { type: [variantSchema], default: [] },
 
-    avgRating:    { type: Number, default: 0 },
+    avgRating: { type: Number, default: 0 },
     totalReviews: { type: Number, default: 0 },
 }, { timestamps: true });
 
-// Index tìm kiếm nhanh
+// Search Index
 productSchema.index({ category: 1, brand: 1 });
-productSchema.index({ name: 'text', brand: 'text', tags: 'text' });
+productSchema.index({ name: 'text', tags: 'text' });
 
 const Product = mongoose.models.product || mongoose.model('product', productSchema);
 

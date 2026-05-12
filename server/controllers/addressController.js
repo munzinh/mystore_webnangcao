@@ -10,7 +10,7 @@ export const addAddress = async (req, res) => {
         await Address.create({ ...address, userId });
         res.json({success: true, message: 'Đã thêm địa chỉ thành công'});
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }
@@ -22,7 +22,7 @@ export const getAddress = async (req, res) => {
         const addresses = await Address.find({userId});
         res.json({success: true, addresses});
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
         res.json({success: false, message: error.message });
     }
 }

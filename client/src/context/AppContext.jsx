@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { dummyProducts } from "../assets/assets";
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -18,6 +17,9 @@ export const AppContextProvider = ({ children }) => {
     const [isSeller, setIsSeller] = useState(false)
     const [showUserLogin, setShowUserLogin] = useState(false)
     const [products, setProducts] = useState([])
+    const [isProductsLoading, setIsProductsLoading] = useState(true)
+    const [categories, setCategories] = useState([])
+    const [isCategoriesLoading, setIsCategoriesLoading] = useState(true)
 
     const [cartItems, setCartItems] = useState([])
     const [searchQuery, setSearchQuery] = useState([])
@@ -31,7 +33,7 @@ export const AppContextProvider = ({ children }) => {
             } else {
                 setIsSeller(false);
             }
-        } catch (error) {
+        } catch {
             setIsSeller(false);
         }
     }
@@ -44,13 +46,14 @@ export const AppContextProvider = ({ children }) => {
                 setUser(data.user);
                 setCartItems(data.user.cartItems);
             }
-        } catch (error) {
+        } catch {
             setUser(null)
         }
     }
 
     //Fetch all product
     const fetchProducts = async () => {
+        setIsProductsLoading(true);
         try {
             const { data } = await axios.get('/api/product/list');
             if (data.success) {
@@ -59,7 +62,28 @@ export const AppContextProvider = ({ children }) => {
                 toast.error(data.message)
             }
         } catch (error) {
-            toast.error(data.message)
+            console.error("Fetch products error:", error);
+            toast.error("Không thể tải danh sách sản phẩm")
+        } finally {
+            setIsProductsLoading(false);
+        }
+    }
+
+    // Fetch categories from the same source used by seller management
+    const fetchCategories = async () => {
+        setIsCategoriesLoading(true);
+        try {
+            const { data } = await axios.get('/api/category/list');
+            if (data.success) {
+                setCategories((data.categories || []).filter(category => category.isActive !== false));
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.error("Fetch categories error:", error);
+            toast.error("Không thể tải danh mục")
+        } finally {
+            setIsCategoriesLoading(false);
         }
     }
 
@@ -73,7 +97,7 @@ export const AppContextProvider = ({ children }) => {
             carData[itemId] = 1;
         }
         setCartItems(carData);
-        toast.success("Added to cart")
+        toast.success("Đã thêm vào giỏ hàng")
         // Track add_to_cart behavior
         if (user) trackBehavior(itemId, 'add_to_cart');
     }
@@ -83,7 +107,7 @@ export const AppContextProvider = ({ children }) => {
         let cartData = structuredClone(cartItems);
         cartData[itemId] = quantity;
         setCartItems(cartData)
-        toast.success("cart updated")
+        toast.success("Đã cập nhật giỏ hàng")
     }
 
     // Remove from cart
@@ -95,7 +119,7 @@ export const AppContextProvider = ({ children }) => {
                 delete cartData[itemId];
             }
         }
-        toast.success("Removed from cart")
+        toast.success("Đã xóa khỏi giỏ hàng")
         setCartItems(cartData)
     }
 
@@ -124,6 +148,7 @@ export const AppContextProvider = ({ children }) => {
         fetchUser()
         fetchSeller()
         fetchProducts()
+        fetchCategories()
     }, [])
 
     // Track user behavior
@@ -131,7 +156,7 @@ export const AppContextProvider = ({ children }) => {
         if (!user) return;
         try {
             await axios.post('/api/behavior/track', { productId, eventType, metadata });
-        } catch (error) {
+        } catch {
             // Silent fail - không ảnh hưởng UX
         }
     };
@@ -159,9 +184,9 @@ export const AppContextProvider = ({ children }) => {
 
     const value = {
         navigate, user, setUser, setIsSeller, isSeller, showUserLogin,
-        setShowUserLogin, products, currency, addToCart, updateCartItem, removeFromCart,
+        setShowUserLogin, products, isProductsLoading, currency, addToCart, updateCartItem, removeFromCart,
         cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount, axios, fetchProducts,
-        setCartItems, trackBehavior
+        categories, isCategoriesLoading, fetchCategories, setCartItems, trackBehavior
     }
 
     return <AppContext.Provider value={value}>

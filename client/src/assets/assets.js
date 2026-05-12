@@ -22,7 +22,7 @@ import black_arrow_icon from "./black_arrow_icon.svg";
 import white_arrow_icon from "./white_arrow_icon.svg";
 import main_banner_bg from "./main_banner_bg.jpg";
 import main_banner_bg_sm from "./main_banner_bg_sm.png";
-import add_address_iamge from "./add_address_image.svg";
+import add_address_image from "./add_address_image.svg";
 import iphone_16_pro_max from "./iphone-16-pro-max.png";
 import macbook_air_m2 from "./macbook_air_m2.png";
 import airpods_4 from "./airpods-4.png";
@@ -96,7 +96,7 @@ export const assets = {
   white_arrow_icon,
   main_banner_bg,
   main_banner_bg_sm,
-  add_address_iamge,
+  add_address_image,
   box_icon,
   bn_m55_5g,
   bn_mb_m4,
@@ -450,7 +450,7 @@ export const dummyProducts = [
   },
   {
     _id: "ek60j01k",
-    name: "Cheese 200g",
+    name: "Tai nghe chụp tai chống ồn Sony WH-1000XM5",
     category: "Âm thanh",
     price: 7990000,
     offerPrice: 7490000,
@@ -524,7 +524,7 @@ export const dummyProducts = [
     _id: "ek64j45k",
     name: "Đồng hồ thông minh Riversong Motive 10GT",
     category: "Đồng hồ",
-    price: 0,
+    price: 3490000,
     offerPrice: 2590000,
     image: [riversong_motive],
     description: [
