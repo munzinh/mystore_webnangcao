@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Link } from 'react-router-dom';
 
+/* ── SVG icons ── */
+const IconBox       = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0v10l-8 4m0-14v14m-8-4l8 4"/></svg>;
+const IconCheck     = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>;
+const IconTag       = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>;
+const IconWarning   = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>;
+
 const Dashboard = () => {
     const { products, axios } = useAppContext();
     const [orders, setOrders] = useState([]);
@@ -25,17 +31,20 @@ const Dashboard = () => {
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
     const totalRevenue = orders.filter(o => o.isPaid).reduce((s, o) => s + o.amount, 0);
-    const paidOrders = orders.filter(o => o.isPaid).length;
-    const outOfStock = products.filter(p => !p.inStock).length;
+    const paidOrders   = orders.filter(o => o.isPaid).length;
+    const outOfStock   = products.filter(p => !p.inStock).length;
     const recentOrders = [...orders]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 5);
 
     const statCards = [
-        { label: 'Tổng đơn hàng', value: loading ? '...' : orders.length, color: 'text-blue-600', bg: 'bg-blue-50', icon: '📦' },
-        { label: 'Đã thanh toán', value: loading ? '...' : paidOrders, color: 'text-green-600', bg: 'bg-green-50', icon: '✅' },
-        { label: 'Tổng sản phẩm', value: products.length, color: 'text-purple-600', bg: 'bg-purple-50', icon: '🛍️' },
-        { label: 'Hết hàng', value: outOfStock, color: outOfStock > 0 ? 'text-red-600' : 'text-gray-400', bg: outOfStock > 0 ? 'bg-red-50' : 'bg-gray-50', icon: '⚠️' },
+        { label: 'Tổng đơn hàng', value: loading ? '...' : orders.length,  color: 'text-blue-600',   bg: 'bg-blue-50',   Icon: IconBox },
+        { label: 'Đã thanh toán', value: loading ? '...' : paidOrders,     color: 'text-green-600',  bg: 'bg-green-50',  Icon: IconCheck },
+        { label: 'Tổng sản phẩm', value: products.length,                   color: 'text-purple-600', bg: 'bg-purple-50', Icon: IconTag },
+        { label: 'Hết hàng',      value: outOfStock,
+          color: outOfStock > 0 ? 'text-red-600' : 'text-gray-400',
+          bg:    outOfStock > 0 ? 'bg-red-50'    : 'bg-gray-50',
+          Icon: IconWarning },
     ];
 
     return (
@@ -50,13 +59,13 @@ const Dashboard = () => {
 
             {/* Stat cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                {statCards.map((s) => (
-                    <div key={s.label} className={`rounded-xl border border-gray-200 p-4 ${s.bg}`}>
+                {statCards.map(({ label, value, color, bg, Icon }) => (
+                    <div key={label} className={`rounded-xl border border-gray-200 p-4 ${bg}`}>
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{s.label}</p>
-                            <span className="text-lg">{s.icon}</span>
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
+                            <span className={color}><Icon /></span>
                         </div>
-                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                        <p className={`text-2xl font-bold ${color}`}>{value}</p>
                     </div>
                 ))}
             </div>
@@ -71,7 +80,7 @@ const Dashboard = () => {
             <div className="bg-white rounded-xl border border-gray-200">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                     <h2 className="font-semibold text-gray-800">Đơn hàng gần đây</h2>
-                    <Link to="/seller/orders" className="text-sm text-blue-600 hover:underline">Xem tất cả →</Link>
+                    <Link to="/seller/orders" className="text-sm text-blue-600 hover:underline">Xem tất cả</Link>
                 </div>
                 {loading ? (
                     <div className="p-5 space-y-3">
@@ -112,12 +121,12 @@ const Dashboard = () => {
 
             {/* Cảnh báo hết hàng */}
             {outOfStock > 0 && (
-                <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-                    <span className="text-2xl">⚠️</span>
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                    <span className="text-red-500 mt-0.5 shrink-0"><IconWarning /></span>
                     <div>
                         <p className="font-semibold text-red-700">Có {outOfStock} sản phẩm hết hàng</p>
                         <Link to="/seller/product-list" className="text-sm text-red-600 hover:underline">
-                            Vào danh sách sản phẩm để cập nhật tồn kho →
+                            Vào danh sách sản phẩm để cập nhật tồn kho
                         </Link>
                     </div>
                 </div>

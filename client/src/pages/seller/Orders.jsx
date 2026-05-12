@@ -2,6 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import toast from 'react-hot-toast';
 
+const IconRefresh = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>;
+const IconDoc     = () => <svg className="w-10 h-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.4}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>;
+
 const Orders = () => {
     const { axios } = useAppContext();
     const [orders, setOrders] = useState([]);
@@ -137,8 +140,9 @@ const Orders = () => {
                         <option value="oldest">Cũ nhất trước</option>
                     </select>
                     <button onClick={fetchOrders}
-                        className="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
-                        🔄 Làm mới
+                        className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                        <IconRefresh />
+                        Làm mới
                     </button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">
@@ -158,7 +162,7 @@ const Orders = () => {
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-16 text-gray-400">
-                    <p className="text-4xl mb-3">📋</p>
+                    <div className="mb-3 text-gray-300"><IconDoc /></div>
                     <p className="font-medium">Không có đơn hàng nào</p>
                     <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
                 </div>
@@ -195,7 +199,7 @@ const Orders = () => {
                                                 ? 'bg-green-100 text-green-700'
                                                 : 'bg-red-100 text-red-600'
                                         }`}>
-                                            {order.isPaid ? '✓ Đã thanh toán' : '✗ Chưa TT'}
+                                            {order.isPaid ? 'Đã thanh toán' : 'Chưa TT'}
                                         </span>
                                     </div>
                                 </div>
