@@ -8,7 +8,7 @@ const BestSeller = () => {
   return (
     <div className='bg-white rounded-xl shadow-sm p-3 md:p-5 w-full mb-6'>
       <div className='max-w-[1200px] mx-auto'>
-        <p className='text-xl md:text-2xl font-bold text-gray-800 uppercase mb-4'>Sản phẩm nổi bật</p>
+        <p className='text-xl md:text-2xl font-bold text-gray-800 uppercase mb-4'>Sản phẩm bán chạy</p>
 
         <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4'>
           {isProductsLoading

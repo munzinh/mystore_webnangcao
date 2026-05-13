@@ -81,7 +81,7 @@ const Home = () => {
       )}
 
       <RecommendationSection
-        title="Sản phẩm nổi bật"
+        title="Xu hướng mua sắm"
         subtitle="Được nhiều người quan tâm nhất tuần này"
         products={trendingProducts}
         loading={trendingLoading}
