@@ -27,7 +27,7 @@ const RecommendationSection = ({
 
     if (loading) {
         return (
-        <div className="bg-white rounded-xl shadow-sm p-3 md:p-5 w-full mb-6">
+            <div className="bg-white rounded-xl shadow-sm p-3 md:p-5 w-full mb-6">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="h-7 w-48 bg-gray-200 rounded animate-pulse"></div>
                 </div>

@@ -3,7 +3,12 @@ export const filterAndSortProducts = (products, category, filters, sort) => {
 
     // Filter by category
     if (category && category !== 'all') {
-        const target = category.toLowerCase();
+        const targets = new Set(
+            (Array.isArray(category) ? category : [category])
+                .filter(Boolean)
+                .map(item => item.toString().toLowerCase())
+        );
+
         result = result.filter(p => {
             const productCategory = p.category || {};
             const values = [
@@ -13,7 +18,7 @@ export const filterAndSortProducts = (products, category, filters, sort) => {
                 typeof productCategory === 'string' ? productCategory : '',
             ].filter(Boolean);
 
-            return values.some(value => value.toString().toLowerCase() === target);
+            return values.some(value => targets.has(value.toString().toLowerCase()));
         });
     }
 

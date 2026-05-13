@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useParams } from 'react-router-dom';
 import ProductFilter from '../components/ProductFilter';
@@ -30,19 +30,47 @@ const CategoryPage = () => {
         clearFilters();
     }, [category]);
 
-    useEffect(() => {
-        // Apply category, filters & sorting
-        let result = products || [];
-        result = filterAndSortProducts(result, category, filters, sort);
-        result = result.filter(product => product.inStock);
-        setFilteredProducts(result);
-    }, [products, category, filters, sort]);
-
     const searchCategory = categories.find(
         (item) =>
             item.slug?.toLowerCase() === category?.toLowerCase() ||
             item.name?.toLowerCase() === category?.toLowerCase()
     );
+
+    const categoryScope = useMemo(() => {
+        if (!searchCategory) return category;
+
+        const categoryMap = new Map(categories.map((item) => [item._id, item]));
+        const scopedCategories = [];
+        const stack = [searchCategory];
+
+        while (stack.length) {
+            const current = stack.pop();
+            if (!current || scopedCategories.some(item => item._id === current._id)) continue;
+
+            scopedCategories.push(current);
+
+            categories.forEach((item) => {
+                const parentId = typeof item.parentId === 'object' ? item.parentId?._id : item.parentId;
+                if (parentId === current._id) {
+                    stack.push(categoryMap.get(item._id) || item);
+                }
+            });
+        }
+
+        return scopedCategories.flatMap((item) => [
+            item.slug,
+            item._id,
+            item.name,
+        ]).filter(Boolean);
+    }, [categories, category, searchCategory]);
+
+    useEffect(() => {
+        // Apply category, child categories, filters & sorting
+        let result = products || [];
+        result = filterAndSortProducts(result, categoryScope, filters, sort);
+        result = result.filter(product => product.inStock);
+        setFilteredProducts(result);
+    }, [products, categoryScope, filters, sort]);
 
     return (
         <div className="mt-16 flex flex-col max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

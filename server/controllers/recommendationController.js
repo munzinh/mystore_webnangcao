@@ -1,6 +1,7 @@
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import UserBehavior from "../models/UserBehavior.js";
+import Recommendation from "../models/Recommendation.js";
 import mongoose from "mongoose";
 import axios from "axios";
 import pkg from 'natural';
@@ -8,6 +9,55 @@ const { TfIdf } = pkg;
 import { similarity } from 'ml-distance';
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
+
+const getProductId = (item) => String(item?.productId || item?._id || item?.product || '');
+
+const hydrateProducts = async (items, limit = 8) => {
+    const orderedIds = items
+        .map(getProductId)
+        .filter(id => mongoose.Types.ObjectId.isValid(id))
+        .slice(0, limit);
+
+    if (orderedIds.length === 0) return [];
+
+    const products = await Product.find({ _id: { $in: orderedIds }, inStock: true });
+    const productMap = new Map(products.map(product => [product._id.toString(), product]));
+
+    return orderedIds
+        .map(id => productMap.get(id))
+        .filter(Boolean);
+};
+
+const getCachedRecommendations = async (type, referenceId, limit = 8) => {
+    const cache = await Recommendation.findOne({ type, referenceId: String(referenceId) }).lean();
+    if (!cache?.recommendations?.length) return null;
+
+    const products = await hydrateProducts(cache.recommendations, limit);
+    return products.length ? products : null;
+};
+
+const saveRecommendationCache = async (type, referenceId, recommendations, algorithm = 'content_based') => {
+    const cacheItems = recommendations
+        .map(item => ({
+            productId: getProductId(item),
+            score: Number(item?.score || 0),
+        }))
+        .filter(item => mongoose.Types.ObjectId.isValid(item.productId));
+
+    if (cacheItems.length === 0) return;
+
+    await Recommendation.updateOne(
+        { type, referenceId: String(referenceId) },
+        {
+            $set: {
+                recommendations: cacheItems,
+                algorithm,
+                updatedAt: new Date(),
+            },
+        },
+        { upsert: true }
+    );
+};
 
 // ─────────────────────────────────────────────────────────
 // Helper: Content-based fallback (Node.js TF-IDF)
@@ -74,14 +124,24 @@ export const getSimilarProducts = async (req, res) => {
     try {
         const { productId } = req.params;
 
+        const cached = await getCachedRecommendations('product_similar', productId, 8);
+        if (cached) {
+            return res.json({ success: true, recommendations: cached, source: 'cache' });
+        }
+
         // Thử Python ML service trước
         const mlResult = await callMLService(`/ml/recommend/content/${productId}`);
         if (mlResult && mlResult.success && mlResult.recommendations?.length) {
-            return res.json({ success: true, recommendations: mlResult.recommendations, source: 'ml' });
+            const products = await hydrateProducts(mlResult.recommendations, 8);
+            if (products.length) {
+                await saveRecommendationCache('product_similar', productId, mlResult.recommendations, 'content_based');
+                return res.json({ success: true, recommendations: products, source: 'ml' });
+            }
         }
 
         // Fallback: Node.js TF-IDF
         const recommendations = await contentBasedFallback(productId);
+        await saveRecommendationCache('product_similar', productId, recommendations, 'content_based_fallback');
         return res.json({ success: true, recommendations, source: 'fallback' });
     } catch (error) {
         console.error(error);
@@ -97,12 +157,17 @@ export const getUserRecommendations = async (req, res) => {
     try {
         const { userId } = req.params;
 
+        const cached = await getCachedRecommendations('user_based', userId, 8);
+        if (cached) {
+            return res.json({ success: true, recommendations: cached, source: 'cache' });
+        }
+
         // Thử Python ML service trước (Hybrid)
         const mlResult = await callMLService(`/ml/recommend/user/${userId}`);
         if (mlResult && mlResult.success && mlResult.recommendations?.length) {
-            // Lấy đầy đủ thông tin product
-            const productIds = mlResult.recommendations.map(r => r.productId);
-            const products = await Product.find({ _id: { $in: productIds }, inStock: true });
+            // Lấy đầy đủ thông tin product và giữ đúng thứ tự score từ ML
+            const products = await hydrateProducts(mlResult.recommendations, 8);
+            await saveRecommendationCache('user_based', userId, mlResult.recommendations, 'hybrid');
             return res.json({ success: true, recommendations: products, source: 'ml_hybrid' });
         }
 
@@ -124,6 +189,7 @@ export const getUserRecommendations = async (req, res) => {
         const interactedIds = new Set(recentBehaviors.map(b => b.productId.toString()));
         const filtered = recommendations.filter(p => !interactedIds.has(p._id.toString()));
 
+        await saveRecommendationCache('user_based', userId, filtered, 'content_based_fallback');
         return res.json({ success: true, recommendations: filtered, source: 'fallback_cb' });
     } catch (error) {
         console.error(error);
@@ -137,6 +203,11 @@ export const getUserRecommendations = async (req, res) => {
 // ─────────────────────────────────────────────────────────
 export const getTrendingProducts = async (req, res) => {
     try {
+        const cached = await getCachedRecommendations('trending', 'global', 12);
+        if (cached) {
+            return res.json({ success: true, recommendations: cached, source: 'cache' });
+        }
+
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
         // Tổng hợp điểm từ behavior events
@@ -167,6 +238,12 @@ export const getTrendingProducts = async (req, res) => {
             behaviorAgg.forEach(b => { scoreMap[b._id.toString()] = b.totalScore; });
             products.sort((a, b) => (scoreMap[b._id.toString()] || 0) - (scoreMap[a._id.toString()] || 0));
 
+            await saveRecommendationCache(
+                'trending',
+                'global',
+                products.map(product => ({ _id: product._id, score: scoreMap[product._id.toString()] || 0 })),
+                'trending'
+            );
             return res.json({ success: true, recommendations: products, source: 'behavior' });
         }
 
@@ -174,6 +251,7 @@ export const getTrendingProducts = async (req, res) => {
         const latestProducts = await Product.find({ inStock: true })
             .sort({ createdAt: -1 })
             .limit(12);
+        await saveRecommendationCache('trending', 'global', latestProducts, 'latest_fallback');
         return res.json({ success: true, recommendations: latestProducts, source: 'latest' });
     } catch (error) {
         console.error(error);
@@ -188,6 +266,11 @@ export const getTrendingProducts = async (req, res) => {
 export const getFrequentlyBoughtTogether = async (req, res) => {
     try {
         const { productId } = req.params;
+
+        const cached = await getCachedRecommendations('bought_together', productId, 5);
+        if (cached) {
+            return res.json({ success: true, recommendations: cached, source: 'cache' });
+        }
 
         // Tìm các đơn hàng có chứa sản phẩm này
         // Convert sang ObjectId để match đúng type (sau khi model đổi từ String → ObjectId)
@@ -206,6 +289,7 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
         if (orders.length === 0) {
             // Fallback: Content-based
             const recommendations = await contentBasedFallback(productId, 5);
+            await saveRecommendationCache('bought_together', productId, recommendations, 'content_based_fallback');
             return res.json({ success: true, recommendations, source: 'fallback_cb' });
         }
 
@@ -228,6 +312,7 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
 
         if (sorted.length === 0) {
             const recommendations = await contentBasedFallback(productId, 5);
+            await saveRecommendationCache('bought_together', productId, recommendations, 'content_based_fallback');
             return res.json({ success: true, recommendations, source: 'fallback_cb' });
         }
 
@@ -235,6 +320,12 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
         // Sắp xếp theo co-occurrence count
         products.sort((a, b) => (coOccurrence[b._id.toString()] || 0) - (coOccurrence[a._id.toString()] || 0));
 
+        await saveRecommendationCache(
+            'bought_together',
+            productId,
+            products.map(product => ({ _id: product._id, score: coOccurrence[product._id.toString()] || 0 })),
+            'co_occurrence'
+        );
         return res.json({ success: true, recommendations: products, source: 'co_occurrence' });
     } catch (error) {
         console.error(error);

@@ -49,53 +49,53 @@ const Home = () => {
   }, [axios, user]);
 
   return (
-  <div className="flex justify-center px-2 md:px-0">
-    <div className="w-full max-w-[1200px]">
+    <div className="flex justify-center px-2 md:px-0">
+      <div className="w-full max-w-[1200px]">
 
-      <div className="mb-4">
-        <Marquee />
-      </div>
-
-      <div className="md:hidden">
-        <Categories mobile />
-      </div>
-
-      {/* 👇 layout ngang */}
-      <div className="home-top flex flex-col md:flex-row gap-4 mb-6">
-        <div className="w-full md:w-[250px] shrink-0 hidden md:block">
-          <Categories />
+        <div className="mb-4">
+          <Marquee />
         </div>
 
-        <div className="flex-1 overflow-hidden min-w-0">
-          <MainBanner />
+        <div className="md:hidden">
+          <Categories mobile />
         </div>
-      </div>
 
-      <BestSeller />
+        {/* 👇 layout ngang */}
+        <div className="home-top flex flex-col md:flex-row gap-4 mb-6">
+          <div className="w-full md:w-[250px] shrink-0 hidden md:block">
+            <Categories />
+          </div>
 
-      {user && (
+          <div className="flex-1 overflow-hidden min-w-0">
+            <MainBanner />
+          </div>
+        </div>
+
+        <BestSeller />
+
+        {user && (
+          <RecommendationSection
+            title="Dành riêng cho bạn"
+            subtitle="Dựa trên lịch sử duyệt và mua hàng của bạn"
+            products={forYouProducts}
+            loading={forYouLoading}
+            badge=""
+            badgeColor="bg-blue-100 text-blue-600"
+          />
+        )}
+
         <RecommendationSection
-          title="Dành riêng cho bạn"
-          subtitle="Dựa trên lịch sử duyệt và mua hàng của bạn"
-          products={forYouProducts}
-          loading={forYouLoading}
-          badge="AI Powered"
-          badgeColor="bg-blue-100 text-blue-600"
+          title="Xu hướng mua sắm"
+          subtitle="Được nhiều người quan tâm nhất"
+          products={trendingProducts}
+          loading={trendingLoading}
+          badge=""
+          badgeColor="bg-orange-100 text-orange-600"
         />
-      )}
 
-      <RecommendationSection
-        title="Xu hướng mua sắm"
-        subtitle="Được nhiều người quan tâm nhất tuần này"
-        products={trendingProducts}
-        loading={trendingLoading}
-        badge=""
-        badgeColor="bg-orange-100 text-orange-600"
-      />
-
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default Home
