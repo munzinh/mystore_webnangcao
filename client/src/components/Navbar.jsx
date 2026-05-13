@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 const Navbar = () => {
     const [open, setOpen] = React.useState(false);
-    const { user, setUser, setShowUserLogin, navigate, setSearchQuery, searchQuery, getCartCount, axios } = useAppContext();
+    const { user, setUser, setShowUserLogin, navigate, setSearchQuery, searchQuery, getCartCount, axios, setCartItems } = useAppContext();
 
     const logout = async () => {
         try {
@@ -15,6 +15,7 @@ const Navbar = () => {
             if (data.success) {
                 toast.success(data.message);
                 setUser(null);
+                setCartItems({});
                 navigate('/');
             } else {
                 toast.error(data.message);
@@ -30,7 +31,7 @@ const Navbar = () => {
         if (searchQuery.length > 0) {
             navigate("/products");
         }
-    }, [searchQuery]);
+    }, [navigate, searchQuery]);
 
     return (
         <nav className="bg-[#d70018] border-b border-gray-300 shadow-md sticky top-0 z-2000">

@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import toast from 'react-hot-toast';
 
 const IconRefresh = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>;
 const IconDoc     = () => <svg className="w-10 h-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.4}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>;
+const orderStatuses = ['Order Placed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
 const Orders = () => {
     const { axios } = useAppContext();
@@ -15,8 +16,9 @@ const Orders = () => {
     const [filterPayment, setFilterPayment] = useState('');  // '' | 'COD' | 'Online'
     const [filterPaid, setFilterPaid] = useState('');        // '' | 'paid' | 'unpaid'
     const [sortOrder, setSortOrder] = useState('newest');
+    const [updatingStatusId, setUpdatingStatusId] = useState('');
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         try {
             setLoading(true);
             const { data } = await axios.get('/api/order/seller');
@@ -25,14 +27,40 @@ const Orders = () => {
             } else {
                 toast.error(data.message);
             }
-        } catch (error) {
+        } catch {
             toast.error('Không thể tải danh sách đơn hàng');
         } finally {
             setLoading(false);
         }
-    };
+    }, [axios]);
 
-    useEffect(() => { fetchOrders(); }, []);
+    useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+    const updateOrderStatus = async (orderId, status) => {
+        const previousOrders = orders;
+        setUpdatingStatusId(orderId);
+        setOrders((current) => current.map((order) => (
+            order._id === orderId ? { ...order, status } : order
+        )));
+
+        try {
+            const { data } = await axios.put(`/api/order/status/${orderId}`, { status });
+            if (data.success) {
+                setOrders((current) => current.map((order) => (
+                    order._id === orderId ? data.order : order
+                )));
+                toast.success(data.message);
+            } else {
+                setOrders(previousOrders);
+                toast.error(data.message);
+            }
+        } catch (error) {
+            setOrders(previousOrders);
+            toast.error(error.message || 'Không thể cập nhật trạng thái đơn hàng');
+        } finally {
+            setUpdatingStatusId('');
+        }
+    };
 
     const formatCurrency = (amount) =>
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -187,6 +215,16 @@ const Orders = () => {
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        <select
+                                            value={order.status || 'Order Placed'}
+                                            disabled={updatingStatusId === order._id}
+                                            onChange={(event) => updateOrderStatus(order._id, event.target.value)}
+                                            className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 outline-none transition-colors disabled:opacity-60"
+                                        >
+                                            {orderStatuses.map((status) => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
                                         <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                                             order.paymentType === 'COD'
                                                 ? 'bg-orange-100 text-orange-700'

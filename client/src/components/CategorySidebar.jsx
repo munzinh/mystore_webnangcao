@@ -18,6 +18,7 @@ const CategorySidebar = ({ mobile = false }) => {
   const [openMobileIds, setOpenMobileIds] = useState({});
   const [activeCategory, setActiveCategory] = useState(null);
   const [popupPosition, setPopupPosition] = useState(null);
+  const sidebarRef = useRef(null);
   const closeTimer = useRef(null);
 
   useEffect(() => {
@@ -73,15 +74,18 @@ const CategorySidebar = ({ mobile = false }) => {
       return;
     }
 
-    const rect = element.getBoundingClientRect();
-    const shouldOpenLeft = rect.right + POPUP_GAP + POPUP_WIDTH > window.innerWidth;
+    const itemRect = element.getBoundingClientRect();
+    const sidebarRect = sidebarRef.current?.getBoundingClientRect();
+    if (!sidebarRect) return;
+
+    const shouldOpenLeft = itemRect.right + POPUP_GAP + POPUP_WIDTH > window.innerWidth;
     const left = shouldOpenLeft
-      ? Math.max(8, rect.left - POPUP_GAP - POPUP_WIDTH)
-      : rect.right + POPUP_GAP;
+      ? -POPUP_GAP - POPUP_WIDTH
+      : sidebarRect.width + POPUP_GAP;
 
     setActiveCategory(category);
     setPopupPosition({
-      top: Math.max(8, Math.min(rect.top, window.innerHeight - 340)),
+      top: Math.max(0, itemRect.top - sidebarRect.top),
       left,
     });
   };
@@ -165,7 +169,7 @@ const CategorySidebar = ({ mobile = false }) => {
   }
 
   return (
-    <div className="relative h-full w-full rounded-xl bg-white p-2.5 shadow-sm">
+    <div ref={sidebarRef} className="relative h-full w-full overflow-visible rounded-xl bg-white p-2.5 shadow-sm">
       <p className="mb-2 px-2 text-base font-bold text-gray-800">Danh mục</p>
 
       <div className="flex flex-col gap-1">

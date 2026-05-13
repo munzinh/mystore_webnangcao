@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import toast from 'react-hot-toast';
 import ProductTable from '../../components/seller/ProductTable';
@@ -7,14 +7,14 @@ import ProductModal from '../../components/seller/ProductModal';
 import ProductForm from '../../components/seller/ProductForm';
 
 const ProductList = () => {
-    const { products, categories, axios, fetchProducts } = useAppContext();
+    const { products, categories, axios, fetchProducts, setProducts } = useAppContext();
 
     // Auto load data if products empty
     useEffect(() => {
         if (products.length === 0) {
             fetchProducts();
         }
-    }, [fetchProducts])
+    }, [fetchProducts, products.length])
 
     // Filter & Sort State
     const [searchQuery, setSearchQuery] = useState('');
@@ -24,7 +24,7 @@ const ProductList = () => {
     const [sortBy, setSortBy] = useState('date-desc');
     const [brands, setBrands] = useState([]);
 
-    const fetchBrands = async () => {
+    const fetchBrands = useCallback(async () => {
         try {
             const { data } = await axios.get('/api/brand/list');
             if (data.success) {
@@ -33,11 +33,11 @@ const ProductList = () => {
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [axios]);
 
     useEffect(() => {
         fetchBrands();
-    }, []);
+    }, [fetchBrands]);
 
     // Modals State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -52,7 +52,9 @@ const ProductList = () => {
         try {
             const { data } = await axios.post('/api/product/stock', { id, inStock });
             if (data.success) {
-                fetchProducts();
+                setProducts((current) => current.map((product) => (
+                    product._id === id ? { ...product, inStock } : product
+                )));
                 toast.success(data.message);
             } else {
                 toast.error(data.message);
@@ -75,7 +77,7 @@ const ProductList = () => {
                 toast.success(data.message);
                 setIsEditModalOpen(false);
                 setEditingProduct(null);
-                fetchProducts();
+                await fetchProducts();
             } else {
                 toast.error(data.message);
             }
@@ -98,8 +100,8 @@ const ProductList = () => {
             if (data.success) {
                 toast.success(data.message);
                 setIsDeleteModalOpen(false);
+                setProducts((current) => current.filter((product) => product._id !== productToDelete));
                 setProductToDelete(null);
-                fetchProducts();
             } else {
                 toast.error(data.message);
             }

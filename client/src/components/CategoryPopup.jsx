@@ -7,7 +7,7 @@ const CategoryPopup = ({ category, position, onNavigate, onMouseEnter, onMouseLe
 
   return (
     <div
-      className="fixed z-50 w-[260px] max-h-[320px] overflow-y-auto rounded-lg border border-gray-100 bg-white py-2 shadow-lg"
+      className="absolute z-50 w-[260px] max-h-[320px] overflow-y-auto rounded-lg border border-gray-100 bg-white py-2 shadow-lg"
       style={{
         top: position.top,
         left: position.left,

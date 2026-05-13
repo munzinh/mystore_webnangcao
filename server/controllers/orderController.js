@@ -77,6 +77,7 @@ export const placeOrderCOD = async (req, res) => {
             shippingAddress,
             paymentType: 'COD',
         });
+        await User.findByIdAndUpdate(userId, { cartItems: {} });
         // Track purchase behavior
         await trackPurchaseEvents(userId, items);
         return res.json({ success: true, message: 'Đặt hàng thành công' });
@@ -202,7 +203,7 @@ export const stripeWebhooks = async (req, res) => {
             //Mark payment as paid
             await Order.findByIdAndUpdate(orderId, { isPaid: true })
             //Clear user cart
-            await User.findByIdAndUpdate(userId, { cartItems: [] });
+            await User.findByIdAndUpdate(userId, { cartItems: {} });
             // Track purchase behavior
             const order = await Order.findById(orderId);
             if (order) await trackPurchaseEvents(userId, order.items);
@@ -216,7 +217,7 @@ export const stripeWebhooks = async (req, res) => {
                 //Mark payment as paid
                 await Order.findByIdAndUpdate(orderId, { isPaid: true });
                 //Clear user cart
-                if (userId) await User.findByIdAndUpdate(userId, { cartItems: [] });
+                if (userId) await User.findByIdAndUpdate(userId, { cartItems: {} });
             }
             break;
         }
@@ -270,6 +271,31 @@ export const getAllOrders = async (req, res) => {
         .populate('items.product', 'name image price offerPrice brand category')
         .sort({ createdAt: -1 });
         res.json({ success: true, orders });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+// Update order status (seller): /api/order/status/:id
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const allowedStatuses = ['Order Placed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+
+        if (!allowedStatuses.includes(status)) {
+            return res.json({ success: false, message: 'Trạng thái đơn hàng không hợp lệ' });
+        }
+
+        const order = await Order.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true, runValidators: true }
+        ).populate('items.product', 'name image price offerPrice brand category');
+
+        if (!order) return res.json({ success: false, message: 'Không tìm thấy đơn hàng' });
+
+        res.json({ success: true, message: 'Đã cập nhật trạng thái đơn hàng', order });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }

@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext";
-import { assets, dummyAddress } from "../assets/assets";
+import { assets } from "../assets/assets";
 import toast from "react-hot-toast";
 import RecommendationSection from "../components/RecommendationSection";
 
 const Cart = () => {
-    const { products, currency, cartItems, removeFromCart, getCartCount, updateCartItem, navigate, getCartAmount, axios, user, setCartItems } = useAppContext();
-    const [cartArray, setCartArray] = useState([]);
+    const { products, cartItems, removeFromCart, getCartCount, updateCartItem, navigate, getCartAmount, axios, user, setCartItems, fetchProducts } = useAppContext();
     const [addresses, setAddresses] = useState([]);
     const [showAddress, setShowAddress] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState(null);
@@ -19,20 +18,14 @@ const Cart = () => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
-    // Tạo giỏ hàng từ cartItems và sản phẩm
-    const getCart = () => {
-        let temArray = [];
-        for (const key in cartItems) {
-            const product = products.find((item) => item._id === key);
-            if (product) {
-                product.quantity = cartItems[key];
-                temArray.push(product);
-            }
-        }
-        setCartArray(temArray);
-    };
+    const cartArray = useMemo(() => Object.entries(cartItems || {})
+        .map(([productId, quantity]) => {
+            const product = products.find((item) => item._id === productId);
+            return product ? { ...product, quantity } : null;
+        })
+        .filter(Boolean), [cartItems, products]);
 
-    const getUserAddress = async () => {
+    const getUserAddress = useCallback(async () => {
         try {
             const { data } = await axios.get('/api/address/get')
             if (data.success) {
@@ -46,7 +39,7 @@ const Cart = () => {
         } catch (error) {
             toast.error(error.message)
         }
-    }
+    }, [axios])
 
     // Xử lý đặt hàng
     const placeOrder = async () => {
@@ -65,6 +58,7 @@ const Cart = () => {
                 if (data.success) {
                     toast.success(data.message);
                     setCartItems({});
+                    fetchProducts();
                     navigate('/my-orders')
                 } else {
                     toast.error(data.message)
@@ -89,24 +83,19 @@ const Cart = () => {
         }
     }
 
-    // Cập nhật giỏ hàng khi sản phẩm thay đổi
-    useEffect(() => {
-        if (products.length > 0 && cartItems) {
-            getCart();
-        }
-    }, [products, cartItems]);
-
-
     useEffect(() => {
         if (user) {
             getUserAddress();
         }
-    }, [user])
+    }, [getUserAddress, user])
 
     // Fetch "Frequently Bought Together" dựa trên sản phẩm đầu tiên trong giỏ hàng
     useEffect(() => {
-        const firstCartItem = Object.keys(cartItems)[0];
-        if (!firstCartItem) return;
+        const firstCartItem = Object.keys(cartItems || {})[0];
+        if (!firstCartItem) {
+            setBoughtTogether([]);
+            return;
+        }
 
         const fetchBoughtTogether = async () => {
             setBoughtLoading(true);
@@ -114,7 +103,7 @@ const Cart = () => {
                 const { data } = await axios.get(`/api/recommendations/bought-together/${firstCartItem}`);
                 if (data.success && data.recommendations?.length) {
                     // Loại bỏ sản phẩm đã trong giỏ hàng
-                    const cartIds = new Set(Object.keys(cartItems));
+                    const cartIds = new Set(Object.keys(cartItems || {}));
                     setBoughtTogether(data.recommendations.filter(p => !cartIds.has(p._id)));
                 }
             } catch (err) {
@@ -124,7 +113,7 @@ const Cart = () => {
             }
         };
         fetchBoughtTogether();
-    }, [cartItems]);
+    }, [axios, cartItems]);
 
     return products.length > 0 && cartItems ? (
         <div className="flex flex-col md:flex-row mt-16 mx-auto max-w-screen-xl px-4">
@@ -142,7 +131,11 @@ const Cart = () => {
                 {cartArray.map((product, index) => (
                     <div key={index} className="grid grid-cols-[2fr_1fr_1fr] text-gray-500 items-center text-sm md:text-base font-medium pt-3">
                         <div className="flex items-center md:gap-6 gap-3">
-                            <div onClick={() => { navigate(`/products/${product.category.toLowerCase()}/${product._id}`); scrollTo(0, 0); }}
+                            <div onClick={() => {
+                                const categoryPath = product.category?.slug || product.category?.name || product.category;
+                                navigate(`/products/${categoryPath.toLowerCase()}/${product._id}`);
+                                scrollTo(0, 0);
+                            }}
                                 className="cursor-pointer w-24 h-24 flex items-center justify-center border border-gray-300 rounded">
                                 <img className="max-w-full h-full object-cover" src={product.image[0]} alt={product.name} />
                             </div>
@@ -201,8 +194,8 @@ const Cart = () => {
                         </button>
                         {showAddress && (
                             <div className="absolute top-12 py-1 bg-white border border-gray-300 text-sm w-full">
-                                {addresses.map((address, index) => (
-                                    <p onClick={() => { setSelectedAddress(address); setShowAddress(false); }} className="text-gray-500 p-2 hover:bg-gray-100">
+                                {addresses.map((address) => (
+                                    <p key={address._id} onClick={() => { setSelectedAddress(address); setShowAddress(false); }} className="text-gray-500 p-2 hover:bg-gray-100">
                                         {address.street}, {address.city}, {address.state}, {address.country}
                                     </p>
                                 ))}

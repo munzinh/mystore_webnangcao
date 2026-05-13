@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { dummyOrders } from '../assets/assets';
 
 const MyOrders = () => {
 
   const [myOrders, setMyOrders] = useState([]);
-  const { currency, axios, user } = useAppContext();
+  const { axios, user } = useAppContext();
 
-  const fetchMyOrders = async () => {
+  const fetchMyOrders = useCallback(async () => {
     try {
       const { data } = await axios.get('/api/order/user')
       if (data.success) {
@@ -16,14 +15,16 @@ const MyOrders = () => {
     } catch (error) {
       console.log(error);
     }
-  }
+  }, [axios])
 
   useEffect(() => {
-    if (user) {
-      fetchMyOrders();
-    }
+    if (!user) return undefined;
 
-  }, [user]);
+    fetchMyOrders();
+    const interval = setInterval(fetchMyOrders, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchMyOrders, user]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {

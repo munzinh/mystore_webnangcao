@@ -1,199 +1,239 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import toast from "react-hot-toast";
 import axios from "axios";
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+axios.defaults.headers.get['Cache-Control'] = 'no-cache';
 
 export const AppContext = createContext();
 
 export const AppContextProvider = ({ children }) => {
-
     const currency = import.meta.env.VITE_CURRENCY;
-
     const navigate = useNavigate();
-    const [user, setUser] = useState(null)
-    const [isSeller, setIsSeller] = useState(false)
-    const [showUserLogin, setShowUserLogin] = useState(false)
-    const [products, setProducts] = useState([])
-    const [isProductsLoading, setIsProductsLoading] = useState(true)
-    const [categories, setCategories] = useState([])
-    const [isCategoriesLoading, setIsCategoriesLoading] = useState(true)
 
-    const [cartItems, setCartItems] = useState([])
-    const [searchQuery, setSearchQuery] = useState([])
+    const [user, setUser] = useState(null);
+    const [isSeller, setIsSeller] = useState(false);
+    const [showUserLogin, setShowUserLogin] = useState(false);
+    const [products, setProducts] = useState([]);
+    const [isProductsLoading, setIsProductsLoading] = useState(true);
+    const [categories, setCategories] = useState([]);
+    const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+    const [cartItems, setCartItems] = useState({});
+    const [searchQuery, setSearchQuery] = useState([]);
 
-    //Fetch seller status
-    const fetchSeller = async () => {
+    const cartSyncTimer = useRef(null);
+    const cartSyncVersion = useRef(0);
+
+    const fetchSeller = useCallback(async () => {
         try {
             const { data } = await axios.get('/api/seller/is-auth');
-            if (data.success) {
-                setIsSeller(true);
-            } else {
-                setIsSeller(false);
-            }
+            setIsSeller(!!data.success);
         } catch {
             setIsSeller(false);
         }
-    }
+    }, []);
 
-    //Fetch User Auth Status, User Data and Cart Items
-    const fetchUser = async () => {
+    const fetchUser = useCallback(async () => {
         try {
             const { data } = await axios.get('/api/user/is-auth');
             if (data.success) {
                 setUser(data.user);
-                setCartItems(data.user.cartItems);
+                setCartItems(data.user?.cartItems || {});
             }
         } catch {
-            setUser(null)
+            setUser(null);
+            setCartItems({});
         }
-    }
+    }, []);
 
-    //Fetch all product
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async () => {
         setIsProductsLoading(true);
         try {
             const { data } = await axios.get('/api/product/list');
             if (data.success) {
-                setProducts(data.products);
+                setProducts(data.products || []);
             } else {
-                toast.error(data.message)
+                toast.error(data.message);
             }
         } catch (error) {
             console.error("Fetch products error:", error);
-            toast.error("Không thể tải danh sách sản phẩm")
+            toast.error("Không thể tải danh sách sản phẩm");
         } finally {
             setIsProductsLoading(false);
         }
-    }
+    }, []);
 
-    // Fetch categories from the same source used by seller management
-    const fetchCategories = async () => {
+    const fetchCategories = useCallback(async () => {
         setIsCategoriesLoading(true);
         try {
             const { data } = await axios.get('/api/category/list');
             if (data.success) {
                 setCategories((data.categories || []).filter(category => category.isActive !== false));
             } else {
-                toast.error(data.message)
+                toast.error(data.message);
             }
         } catch (error) {
             console.error("Fetch categories error:", error);
-            toast.error("Không thể tải danh mục")
+            toast.error("Không thể tải danh mục");
         } finally {
             setIsCategoriesLoading(false);
         }
-    }
+    }, []);
 
-    // Add to cart
-    const addToCart = (itemId) => {
-        let carData = structuredClone(cartItems);
-
-        if (carData[itemId]) {
-            carData[itemId] += 1;
-        } else {
-            carData[itemId] = 1;
-        }
-        setCartItems(carData);
-        toast.success("Đã thêm vào giỏ hàng")
-        // Track add_to_cart behavior
-        if (user) trackBehavior(itemId, 'add_to_cart');
-    }
-
-    // Update cart
-    const updateCartItem = (itemId, quantity) => {
-        let cartData = structuredClone(cartItems);
-        cartData[itemId] = quantity;
-        setCartItems(cartData)
-        toast.success("Đã cập nhật giỏ hàng")
-    }
-
-    // Remove from cart
-    const removeFromCart = (itemId) => {
-        let cartData = structuredClone(cartItems);
-        if (cartData[itemId]) {
-            cartData[itemId] -= 1;
-            if (cartData[itemId] === 0) {
-                delete cartData[itemId];
-            }
-        }
-        toast.success("Đã xóa khỏi giỏ hàng")
-        setCartItems(cartData)
-    }
-
-    // Get cart Item Count
-    const getCartCount = () => {
-        let totalCount = 0;
-        for (const item in cartItems) {
-            totalCount += cartItems[item];
-        }
-        return totalCount;
-    }
-
-    // Get cart Total Amount
-    const getCartAmount = () => {
-        let totalAmount = 0;
-        for (const items in cartItems) {
-            let itemInfo = products.find((product) => product._id === items);
-            if (cartItems[items] > 0) {
-                totalAmount += itemInfo.offerPrice * cartItems[items]
-            }
-        }
-        return Math.floor(totalAmount * 100) / 100;
-    }
-
-    useEffect(() => {
-        fetchUser()
-        fetchSeller()
-        fetchProducts()
-        fetchCategories()
-    }, [])
-
-    // Track user behavior
-    const trackBehavior = async (productId, eventType, metadata = {}) => {
+    const trackBehavior = useCallback(async (productId, eventType, metadata = {}) => {
         if (!user) return;
         try {
             await axios.post('/api/behavior/track', { productId, eventType, metadata });
         } catch {
             // Silent fail - không ảnh hưởng UX
         }
-    };
+    }, [user]);
 
-    // update database cart items
-    useEffect(() => {
-        const updateCart = async () => {
-            try {
-                const { data } = await axios.post('/api/cart/update', {
-                    userId: user._id,
-                    cartItems
-                });
-                if (!data.success) {
-                    toast.error(data.message)
-                }
-            } catch (error) {
-                toast.error(error.message)
+    const addToCart = useCallback((itemId) => {
+        setCartItems((current) => ({
+            ...current,
+            [itemId]: (Number(current?.[itemId]) || 0) + 1,
+        }));
+        toast.success("Đã thêm vào giỏ hàng");
+        if (user) trackBehavior(itemId, 'add_to_cart');
+    }, [trackBehavior, user]);
+
+    const updateCartItem = useCallback((itemId, quantity) => {
+        const nextQuantity = Number(quantity) || 0;
+        setCartItems((current) => {
+            const nextCart = { ...(current || {}) };
+            if (nextQuantity <= 0) {
+                delete nextCart[itemId];
+            } else {
+                nextCart[itemId] = nextQuantity;
+            }
+            return nextCart;
+        });
+        toast.success("Đã cập nhật giỏ hàng");
+    }, []);
+
+    const removeFromCart = useCallback((itemId) => {
+        setCartItems((current) => {
+            const nextCart = { ...(current || {}) };
+            if (nextCart[itemId]) {
+                nextCart[itemId] -= 1;
+            }
+            if (!nextCart[itemId] || nextCart[itemId] <= 0) {
+                delete nextCart[itemId];
+            }
+            return nextCart;
+        });
+        toast.success("Đã xóa khỏi giỏ hàng");
+    }, []);
+
+    const cartCount = useMemo(() => Object.values(cartItems || {})
+        .reduce((total, quantity) => total + Number(quantity || 0), 0), [cartItems]);
+
+    const cartAmount = useMemo(() => {
+        let totalAmount = 0;
+        for (const itemId in cartItems) {
+            const itemInfo = products.find((product) => product._id === itemId);
+            if (itemInfo && cartItems[itemId] > 0) {
+                totalAmount += itemInfo.offerPrice * cartItems[itemId];
             }
         }
+        return Math.floor(totalAmount * 100) / 100;
+    }, [cartItems, products]);
 
-        if (user) {
-            updateCart()
+    const getCartCount = useCallback(() => cartCount, [cartCount]);
+    const getCartAmount = useCallback(() => cartAmount, [cartAmount]);
+
+    useEffect(() => {
+        fetchUser();
+        fetchSeller();
+        fetchProducts();
+        fetchCategories();
+    }, [fetchCategories, fetchProducts, fetchSeller, fetchUser]);
+
+    useEffect(() => {
+        if (!user) return undefined;
+
+        if (cartSyncTimer.current) {
+            clearTimeout(cartSyncTimer.current);
         }
-    }, [cartItems])
 
-    const value = {
-        navigate, user, setUser, setIsSeller, isSeller, showUserLogin,
-        setShowUserLogin, products, isProductsLoading, currency, addToCart, updateCartItem, removeFromCart,
-        cartItems, searchQuery, setSearchQuery, getCartAmount, getCartCount, axios, fetchProducts,
-        categories, isCategoriesLoading, fetchCategories, setCartItems, trackBehavior
-    }
+        const currentVersion = ++cartSyncVersion.current;
+        cartSyncTimer.current = setTimeout(async () => {
+            try {
+                const { data } = await axios.post('/api/cart/update', { cartItems });
+                if (!data.success && currentVersion === cartSyncVersion.current) {
+                    toast.error(data.message);
+                }
+            } catch (error) {
+                if (currentVersion === cartSyncVersion.current) {
+                    toast.error(error.message);
+                }
+            }
+        }, 250);
 
-    return <AppContext.Provider value={value}>
-        {children}
-    </AppContext.Provider>
-}
+        return () => {
+            if (cartSyncTimer.current) {
+                clearTimeout(cartSyncTimer.current);
+            }
+        };
+    }, [cartItems, user]);
 
-export const useAppContext = () => {
-    return useContext(AppContext)
-}
+    const value = useMemo(() => ({
+        navigate,
+        user,
+        setUser,
+        setIsSeller,
+        isSeller,
+        showUserLogin,
+        setShowUserLogin,
+        products,
+        setProducts,
+        isProductsLoading,
+        currency,
+        addToCart,
+        updateCartItem,
+        removeFromCart,
+        cartItems,
+        searchQuery,
+        setSearchQuery,
+        getCartAmount,
+        getCartCount,
+        axios,
+        fetchProducts,
+        categories,
+        isCategoriesLoading,
+        fetchCategories,
+        setCartItems,
+        trackBehavior,
+    }), [
+        navigate,
+        user,
+        isSeller,
+        showUserLogin,
+        products,
+        isProductsLoading,
+        currency,
+        addToCart,
+        updateCartItem,
+        removeFromCart,
+        cartItems,
+        searchQuery,
+        getCartAmount,
+        getCartCount,
+        fetchProducts,
+        categories,
+        isCategoriesLoading,
+        fetchCategories,
+        trackBehavior,
+    ]);
+
+    return (
+        <AppContext.Provider value={value}>
+            {children}
+        </AppContext.Provider>
+    );
+};
+
+export const useAppContext = () => useContext(AppContext);
