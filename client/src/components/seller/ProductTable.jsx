@@ -2,6 +2,13 @@ import React from 'react';
 
 // Helper với schema mới: variants có attributes Map + variantLabel
 const getDisplayPrice = (product, field) => {
+    if (field === 'price' && product.originalPrice > 0 && (!product.variants || product.variants.length === 0)) {
+        return product.originalPrice;
+    }
+    if (field === 'offerPrice' && product.salePrice > 0 && (!product.variants || product.variants.length === 0)) {
+        return product.salePrice;
+    }
+
     if (product.variants && product.variants.length > 0) {
         const prices = product.variants.map(v => v[field]).filter(p => p > 0);
         if (prices.length > 0) return Math.min(...prices);
@@ -22,6 +29,12 @@ const getVariantLabels = (variants = []) =>
         v.variantLabel || Object.values(v.attributes || {}).filter(Boolean).join(' - ')
     ).filter(Boolean);
 
+const getBrandName = (product) => (
+    product.brandName
+    || (typeof product.brand === 'object' ? product.brand?.name : product.brand)
+    || 'Chưa có'
+);
+
 const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
     const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n);
 
@@ -32,8 +45,10 @@ const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
                     <tr>
                         <th className="px-4 py-3 font-semibold w-16">Ảnh</th>
                         <th className="px-4 py-3 font-semibold">Tên sản phẩm</th>
+                        <th className="px-4 py-3 font-semibold w-32">Thương hiệu</th>
                         <th className="px-4 py-3 font-semibold w-28">Danh mục</th>
                         <th className="px-4 py-3 font-semibold w-24">Biến thể</th>
+                        <th className="px-4 py-3 font-semibold w-36">Giá gốc</th>
                         <th className="px-4 py-3 font-semibold w-36">Giá ưu đãi</th>
                         <th className="px-4 py-3 font-semibold text-center w-24">Kho</th>
                         <th className="px-4 py-3 font-semibold text-center w-28">Trạng thái</th>
@@ -43,17 +58,18 @@ const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
                 <tbody className="text-sm text-gray-600 divide-y divide-gray-200">
                     {products.length === 0 ? (
                         <tr>
-                            <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
+                            <td colSpan="10" className="px-4 py-8 text-center text-gray-400">
                                 Không tìm thấy sản phẩm nào phù hợp với bộ lọc
                             </td>
                         </tr>
                     ) : (
                         products.map((product) => {
-                            const minPrice  = getDisplayPrice(product, 'offerPrice');
+                            const minPrice = getDisplayPrice(product, 'offerPrice');
+                            const originalPrice = getDisplayPrice(product, 'price');
                             const totalStock = getTotalStock(product);
-                            const varCount  = product.variants?.length || 0;
+                            const varCount = product.variants?.length || 0;
                             const hasVariants = varCount > 0;
-                            const isInStock  = hasVariants ? totalStock > 0 : product.inStock;
+                            const isInStock = hasVariants ? totalStock > 0 : product.inStock;
 
                             return (
                                 <tr key={product._id} className="hover:bg-gray-50 transition">
@@ -73,11 +89,13 @@ const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
                                         <div className="font-medium text-gray-900 line-clamp-2" title={product.name}>
                                             {product.name}
                                         </div>
-                                        {product.brand && (
-                                            <span className="inline-block mt-0.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                                                {product.brand.name || product.brand}
-                                            </span>
-                                        )}
+                                    </td>
+
+                                    {/* Thương hiệu */}
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className="inline-block text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                                            {getBrandName(product)}
+                                        </span>
                                     </td>
 
                                     {/* Danh mục */}
@@ -103,6 +121,13 @@ const ProductTable = ({ products, onEdit, onDelete, onToggleStock }) => {
                                         ) : (
                                             <span className="text-xs text-gray-400">—</span>
                                         )}
+                                    </td>
+
+                                    {/* Giá gốc (min) */}
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className="text-gray-700 font-medium">
+                                            {fmt(originalPrice)}₫
+                                        </span>
                                     </td>
 
                                     {/* Giá ưu đãi (min) */}

@@ -7,6 +7,27 @@ import { similarity } from 'ml-distance';
 
 const { TfIdf } = pkg;
 
+const normalizeProductResponse = (product) => {
+    if (!product) return product;
+
+    const data = typeof product.toObject === 'function'
+        ? product.toObject()
+        : { ...product };
+
+    const brandName = typeof data.brand === 'object' ? data.brand?.name : '';
+    const categoryName = typeof data.category === 'object' ? data.category?.name : '';
+
+    return {
+        ...data,
+        brandName: brandName || data.brandName || '',
+        categoryName: categoryName || data.categoryName || '',
+        originalPrice: data.price ?? 0,
+        salePrice: data.offerPrice ?? 0,
+    };
+};
+
+const normalizeProductListResponse = (products = []) => products.map(normalizeProductResponse);
+
 // Helper to upload images
 const uploadMultipleImages = async (reqFiles, prefix, bodyFields) => {
     let imagesUrl = [];
@@ -61,7 +82,7 @@ export const productList = async (req, res) => {
         const products = await Product.find({})
             .populate('category', 'name slug')
             .populate('brand', 'name slug');
-        res.json({ success: true, products });
+        res.json({ success: true, products: normalizeProductListResponse(products) });
     } catch (error) {
         console.error(error.message);
         res.json({ success: false, message: error.message });
@@ -75,7 +96,7 @@ export const productById = async (req, res) => {
         const product = await Product.findById(id)
             .populate('category', 'name slug')
             .populate('brand', 'name slug');
-        res.json({ success: true, product });
+        res.json({ success: true, product: normalizeProductResponse(product) });
     } catch (error) {
         console.error(error.message);
         res.json({ success: false, message: error.message });
@@ -189,7 +210,7 @@ export const recommendProducts = async (req, res) => {
         const top = similarities
             .filter(s => s.idx !== targetIndex)
             .slice(0, 5)
-            .map(s => products[s.idx]);
+            .map(s => normalizeProductResponse(products[s.idx]));
 
         res.json({ success: true, recommendations: top });
     } catch (error) {
@@ -221,7 +242,7 @@ export const searchProducts = async (req, res) => {
             .sort(q ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
             .limit(20);
 
-        res.json({ success: true, products });
+        res.json({ success: true, products: normalizeProductListResponse(products) });
     } catch (error) {
         console.error(error.message);
         res.json({ success: false, message: error.message });

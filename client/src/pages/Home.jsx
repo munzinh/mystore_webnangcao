@@ -27,7 +27,7 @@ const Home = () => {
       }
     };
     fetchTrending();
-  }, []);
+  }, [axios]);
 
   // Fetch personalized recommendations (chỉ khi đăng nhập)
   useEffect(() => {
@@ -46,7 +46,7 @@ const Home = () => {
       }
     };
     fetchForYou();
-  }, [user]);
+  }, [axios, user]);
 
   return (
   <div className="flex justify-center px-2 md:px-0">
@@ -54,6 +54,10 @@ const Home = () => {
 
       <div className="mb-4">
         <Marquee />
+      </div>
+
+      <div className="md:hidden">
+        <Categories mobile />
       </div>
 
       {/* 👇 layout ngang */}
