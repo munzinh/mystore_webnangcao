@@ -112,19 +112,22 @@ const ProductList = () => {
 
     // Derived Data
     const filteredProducts = useMemo(() => {
-        return products.filter(p => {
-            const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const catId = typeof p.category === 'object' ? p.category?._id : p.category;
-            const matchCategory = filterCategory ? catId === filterCategory : true;
+    return products.filter(p => {
+        const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        // 1. Lấy ID danh mục của sản phẩm và ép về chuỗi String
+        const catId = typeof p.category === 'object' ? p.category?._id : p.category;
+        const matchCategory = filterCategory ? catId === filterCategory : true;
 
-            const brandId = typeof p.brand === 'object' ? p.brand?._id : p.brand;
-            const matchBrand = filterBrand ? brandId === filterBrand : true;
+        // 2. Lấy ID thương hiệu của sản phẩm và ép về chuỗi String
+        const brandId = typeof p.brand === 'object' ? p.brand?._id : p.brand;
+        const matchBrand = filterBrand ? brandId === filterBrand : true;
 
-            let matchStatus = true;
-            if (filterStatus === 'inStock') matchStatus = p.inStock === true;
-            if (filterStatus === 'outOfStock') matchStatus = p.inStock === false;
+        let matchStatus = true;
+        if (filterStatus === 'inStock') matchStatus = p.inStock === true;
+        if (filterStatus === 'outOfStock') matchStatus = p.inStock === false;
 
-            return matchSearch && matchCategory && matchBrand && matchStatus;
+        return matchSearch && matchCategory && matchBrand && matchStatus;
         }).sort((a, b) => {
             switch (sortBy) {
                 case 'price-asc': return a.offerPrice - b.offerPrice;

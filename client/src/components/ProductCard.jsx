@@ -32,7 +32,7 @@ const ProductCard = ({ product }) => {
         <div
             onClick={() => {
                 const cat = product.category?.slug || product.category?.name || product.category;
-                navigate(`/products/${cat.toLowerCase()}/${product._id}`);
+                navigate(`/products/${cat.toLowerCase()}/${product._id}`);  
                 scrollTo(0, 0);
             }}
             className="group relative border border-gray-100 rounded-xl p-2.5 bg-white w-full hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full cursor-pointer"

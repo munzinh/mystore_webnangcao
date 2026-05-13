@@ -15,35 +15,11 @@ const ProductDetails = () => {
     const [thumbnail, setThumbnail] = useState(null);
     const [avgRating, setAvgRating] = useState(0);
     const [totalReviews, setTotalReviews] = useState(0);
-    const [selectedColor, setSelectedColor] = useState(null);
-    const [selectedStorage, setSelectedStorage] = useState(null);
 
     const product = products.find((item) => item._id === id);
 
     const formatVND = (amount) =>
         new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
-
-    const variantData = {
-        colors: [
-            { name: "Đen" },
-            { name: "Trắng" },
-            { name: "Xanh" }
-        ],
-        storage: [
-            { size: "128GB", price: product?.offerPrice },
-            { size: "256GB", price: product?.offerPrice + 1000000 },
-            { size: "512GB", price: product?.offerPrice + 3000000 }
-        ]
-    };
-
-    useEffect(() => { 
-        if (variantData.colors.length > 0) {
-             setSelectedColor(variantData.colors[0]);
-        } 
-        if (variantData.storage.length > 0) {
-             setSelectedStorage(variantData.storage[0]);
-        }
-    }, [product]);
 
     // ── Fetch recommendations + ratings ──────────────────────────────────────
     useEffect(() => {
@@ -187,7 +163,7 @@ const ProductDetails = () => {
                             </p>
                         </div>
 
-                        {/* Variant selector */}
+                        {/* Variant selector (GIỮ LẠI PHẦN NÀY - Label: Phiên bản) */}
                         {hasVariants && product.variants.length > 1 && (
                             <div className="mt-5">
                                 <p className="text-sm font-medium text-gray-700 mb-2">
@@ -218,10 +194,17 @@ const ProductDetails = () => {
                                         );
                                     })}
                                 </div>
+                                {/* Tồn kho của variant */}
+                                <p className="mt-2 text-xs">
+                                    {isOutOfStock
+                                        ? <span className="text-red-500 font-medium">⚠ Phiên bản này đã hết hàng</span>
+                                        : <span className="text-green-600">✓ Còn {variantStock} sản phẩm</span>
+                                    }
+                                </p>
                             </div>
                         )}
 
-                        {/* PRICE */}
+                        {/* PRICE (Đã dọn dẹp đoạn lặp lại, sử dụng displayPrice từ hệ thống Phiên bản) */}
                         <div className="mt-6">
                             <p className="text-gray-500/70 line-through">Giá gốc: {formatVND(displayPrice)}</p>
                             <p className="text-2xl font-medium">
@@ -235,37 +218,9 @@ const ProductDetails = () => {
                             )}
                         </div>
 
-                        {/* COLOR */}
-                        <div className="mt-6">
-                            <p className="font-medium mb-2">Màu sắc:</p>
-                            <div className="flex gap-3">
-                                {variantData.colors.map((color, index) => (
-                                    <button 
-                                        key={index} 
-                                        onClick={() => setSelectedColor(color)}
-                                        className={`px-4 py-2 border rounded-full ${selectedColor?.name === color.name ? "border-[#d70018] bg-red-50 text-[#d70018]" : "border-gray-300"}`}
-                                    >
-                                        {color.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        {/* [ĐÃ XÓA KHỎI ĐÂY] Phần chọn Màu sắc hardcoded (variantData.colors) */}
 
-                        {/* STORAGE */}
-                        <div className="mt-4">
-                            <p className="font-medium mb-2">Dung lượng:</p>
-                            <div className="flex gap-3">
-                                {variantData.storage.map((item, index) => (
-                                    <button 
-                                        key={index} 
-                                        onClick={() => setSelectedStorage(item)}
-                                        className={`px-4 py-2 border rounded-lg ${selectedStorage?.size === item.size ? "border-[#d70018] bg-red-50 text-[#d70018]" : "border-gray-300"}`}
-                                    >
-                                        {item.size}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        {/* [ĐÃ XÓA KHỎI ĐÂY] Phần chọn Dung lượng hardcoded (variantData.storage) - Vì xung đột với giá tiền thực tế của Phiên bản */}
 
                         {/* DESCRIPTION */}
                         <div className="mt-6">
