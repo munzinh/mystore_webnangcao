@@ -20,8 +20,9 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), 'server', '.env'))
 
-MONGO_URI = os.getenv('MONGODB_URI', 'mongodb+srv://mystore:XiyeLktDmi9a167P@cluster0.uuvmrro.mongodb.net')
+MONGO_URI = os.getenv('MONGODB_URI')
 DB_NAME = os.getenv('DB_NAME', 'Greencart')
 
 EVENT_WEIGHTS = {
@@ -33,6 +34,8 @@ EVENT_WEIGHTS = {
 
 
 def get_db():
+    if not MONGO_URI:
+        raise RuntimeError('MONGODB_URI is not configured')
     client = MongoClient(MONGO_URI)
     return client[DB_NAME]
 

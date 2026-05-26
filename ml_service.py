@@ -25,11 +25,12 @@ from hybrid_recommendation import get_hybrid_recommendations
 from evaluate import evaluate_content_based, evaluate_collaborative_filtering
 
 load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), 'server', '.env'))
 
 app = Flask(__name__)
 CORS(app)  # Allow Node.js backend to call
 
-MONGO_URI = os.getenv('MONGODB_URI', 'mongodb+srv://mystore:XiyeLktDmi9a167P@cluster0.uuvmrro.mongodb.net')
+MONGO_URI = os.getenv('MONGODB_URI')
 DB_NAME = os.getenv('DB_NAME', 'Greencart')
 
 
