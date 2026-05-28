@@ -11,14 +11,24 @@ const getMinPrice = (product, field) => {
     return product[field] || 0;
 };
 
+const isObjectId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
+
 const ProductCard = ({ product }) => {
     const { addToCart, removeFromCart, cartItems, navigate } = useAppContext();
 
     const formatCurrency = (amount) =>
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    const formatSoldCount = (amount) =>
+        new Intl.NumberFormat('vi-VN', {
+            notation: amount >= 1000 ? 'compact' : 'standard',
+            maximumFractionDigits: 1,
+        }).format(amount);
 
     const hasVariants = product.variants && product.variants.length > 0;
     const variantCount = hasVariants ? product.variants.length : 0;
+    const soldCount = Number(product.sold ?? product.totalSold ?? product.soldCount ?? product.purchaseCount ?? 0);
+    const categoryLabel = product.category?.name || product.categoryName || (!isObjectId(product.category) ? product.category : '');
+    const brandLabel = product.brand?.name || product.brandName || (!isObjectId(product.brand) ? product.brand : '');
 
     // Giá hiển thị — lấy từ variants nếu có
     const displayOfferPrice = getMinPrice(product, 'offerPrice');
@@ -63,22 +73,29 @@ const ProductCard = ({ product }) => {
             {/* Thông tin */}
             <div className="text-gray-500/70 text-sm flex flex-col gap-1 flex-grow">
                 {/* Category + Brand */}
-                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                    <p className="text-[11px] truncate">{product.category?.name || product.category}</p>
-                    {product.brand && (
-                        <span className="text-[10px] bg-gray-50 border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
-                            {product.brand?.name || product.brand}
-                        </span>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 mb-0.5 min-h-[22px]">
+                    {categoryLabel && (
+                        <p className="text-[11px] truncate">
+                            {categoryLabel}
+                        </p>
                     )}
+                    <span className="text-[10px] bg-gray-50 border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded truncate max-w-[90px]">
+                        {brandLabel || '\u00A0'}
+                    </span>
                 </div>
 
                 <p className="text-gray-800 font-semibold text-[14px] leading-snug hover:text-[#d70018] transition-colors line-clamp-2 min-h-[42px]">{product.name}</p>
 
                 {/* Giá */}
                 <div className="flex flex-col mt-auto pt-2">
-                    <p className="text-base font-bold text-[#d70018] leading-tight">
-                        {formatCurrency(displayOfferPrice)}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="text-base font-bold text-[#d70018] leading-tight">
+                            {formatCurrency(displayOfferPrice)}
+                        </p>
+                        <span className="shrink-0 text-[11px] text-gray-500">
+                            Đã bán {formatSoldCount(soldCount)}
+                        </span>
+                    </div>
                     <p className="text-gray-400 text-xs line-through leading-tight mt-0.5">
                         {displayPrice > displayOfferPrice ? formatCurrency(displayPrice) : '\u00A0'}
                     </p>

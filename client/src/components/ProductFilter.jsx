@@ -18,6 +18,7 @@ const ProductFilter = ({ filters, setFilters, sort, setSort, clearFilters, categ
     ];
 
     const sortOptions = [
+        { label: 'Phù hợp nhất', value: 'recommended' },
         { label: 'Mới nhất', value: 'newest' },
         { label: 'Giá thấp → cao', value: 'price_asc' },
         { label: 'Giá cao → thấp', value: 'price_desc' },

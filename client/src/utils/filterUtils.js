@@ -1,3 +1,25 @@
+const getProductScore = (product) => {
+    const sold = Number(product.sold || 0);
+    const rating = Number(product.avgRating || 0);
+    const reviews = Number(product.totalReviews || 0);
+    const price = Number(product.price || 0);
+    const offerPrice = Number(product.offerPrice || product.price || 0);
+    const discount = price > offerPrice && price > 0
+        ? Math.round(((price - offerPrice) / price) * 100)
+        : 0;
+    const createdAt = product.createdAt ? new Date(product.createdAt).getTime() : 0;
+    const ageInDays = createdAt ? (Date.now() - createdAt) / (1000 * 60 * 60 * 24) : 365;
+    const freshness = Math.max(0, 30 - ageInDays) / 30;
+
+    return (
+        sold * 8 +
+        rating * 12 +
+        Math.min(reviews, 50) * 0.8 +
+        Math.min(discount, 40) * 0.5 +
+        freshness * 6
+    );
+};
+
 export const filterAndSortProducts = (products, category, filters, sort) => {
     let result = [...products];
 
@@ -46,6 +68,16 @@ export const filterAndSortProducts = (products, category, filters, sort) => {
 
     // Sort
     switch (sort) {
+        case 'recommended':
+            result.sort((a, b) => {
+                const scoreDiff = getProductScore(b) - getProductScore(a);
+                if (scoreDiff !== 0) return scoreDiff;
+
+                const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+                const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+                return dateB - dateA;
+            });
+            break;
         case 'price_asc':
             result.sort((a, b) => (a.offerPrice || a.price) - (b.offerPrice || b.price));
             break;

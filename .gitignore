@@ -1,2 +1,23 @@
 node_modules
 .agent
+
+# Environment variables
+.env
+*.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Build and tooling output
+dist/
+build/
+.vite/
+.vercel/
+*.log
+
+# Temporary review artifacts
+.codex_pdf_review/
+tmp-vite-dist*
+**/tmp-vite-dist*
+

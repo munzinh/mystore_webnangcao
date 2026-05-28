@@ -4,10 +4,11 @@ import Categories from '../components/Categories';
 import BestSeller from '../components/BestSeller';
 import Marquee from "../components/Marquee";
 import RecommendationSection from '../components/RecommendationSection';
+import RecommendationSurveyPopup from '../components/RecommendationSurveyPopup';
 import { useAppContext } from '../context/AppContext';
 
 const Home = () => {
-  const { user, axios } = useAppContext();
+  const { user, axios, behaviorVersion } = useAppContext();
 
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [forYouProducts, setForYouProducts] = useState([]);
@@ -46,7 +47,7 @@ const Home = () => {
       }
     };
     fetchForYou();
-  }, [axios, user]);
+  }, [axios, user, behaviorVersion]);
 
   return (
     <div className="flex justify-center px-2 md:px-0">
@@ -93,6 +94,7 @@ const Home = () => {
           badgeColor="bg-orange-100 text-orange-600"
         />
 
+        <RecommendationSurveyPopup />
       </div>
     </div>
   );

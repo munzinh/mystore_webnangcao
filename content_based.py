@@ -60,10 +60,10 @@ def build_product_dataframe(db):
 
     # Feature cho TF-IDF: name + category + description + price_bin
     df['combined_features'] = (
-        df['name'].fillna('') + ' ' +
-        df['category'].fillna('') + ' ' +
-        df['description_text'] + ' ' +
-        df['price_bin']
+        df['name'].fillna('').astype(str) + ' ' +
+        df['category'].fillna('').astype(str) + ' ' +
+        df['description_text'].astype(str) + ' ' +
+        df['price_bin'].astype(str)
     )
     return df
 

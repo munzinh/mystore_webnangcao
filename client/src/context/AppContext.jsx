@@ -22,6 +22,7 @@ export const AppContextProvider = ({ children }) => {
     const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
     const [cartItems, setCartItems] = useState({});
     const [searchQuery, setSearchQuery] = useState([]);
+    const [behaviorVersion, setBehaviorVersion] = useState(0);
 
     const cartSyncTimer = useRef(null);
     const cartSyncVersion = useRef(0);
@@ -41,11 +42,15 @@ export const AppContextProvider = ({ children }) => {
             if (data.success) {
                 setUser(data.user);
                 setCartItems(data.user?.cartItems || {});
+                return data.user;
             }
         } catch {
             setUser(null);
             setCartItems({});
         }
+        setUser(null);
+        setCartItems({});
+        return null;
     }, []);
 
     const fetchProducts = useCallback(async () => {
@@ -85,7 +90,10 @@ export const AppContextProvider = ({ children }) => {
     const trackBehavior = useCallback(async (productId, eventType, metadata = {}) => {
         if (!user) return;
         try {
-            await axios.post('/api/behavior/track', { productId, eventType, metadata });
+            const { data } = await axios.post('/api/behavior/track', { productId, eventType, metadata });
+            if (data.success) {
+                setBehaviorVersion((version) => version + 1);
+            }
         } catch {
             // Silent fail - không ảnh hưởng UX
         }
@@ -145,12 +153,20 @@ export const AppContextProvider = ({ children }) => {
     const getCartCount = useCallback(() => cartCount, [cartCount]);
     const getCartAmount = useCallback(() => cartAmount, [cartAmount]);
 
-    useEffect(() => {
-        fetchUser();
-        fetchSeller();
-        fetchProducts();
-        fetchCategories();
+    const refreshAppData = useCallback(async () => {
+        const [currentUser] = await Promise.all([
+            fetchUser(),
+            fetchSeller(),
+            fetchProducts(),
+            fetchCategories(),
+        ]);
+
+        return currentUser;
     }, [fetchCategories, fetchProducts, fetchSeller, fetchUser]);
+
+    useEffect(() => {
+        refreshAppData();
+    }, [refreshAppData]);
 
     useEffect(() => {
         if (!user) return undefined;
@@ -201,12 +217,15 @@ export const AppContextProvider = ({ children }) => {
         getCartAmount,
         getCartCount,
         axios,
+        fetchUser,
         fetchProducts,
         categories,
         isCategoriesLoading,
         fetchCategories,
+        refreshAppData,
         setCartItems,
         trackBehavior,
+        behaviorVersion,
     }), [
         navigate,
         user,
@@ -222,11 +241,14 @@ export const AppContextProvider = ({ children }) => {
         searchQuery,
         getCartAmount,
         getCartCount,
+        fetchUser,
         fetchProducts,
         categories,
         isCategoriesLoading,
         fetchCategories,
+        refreshAppData,
         trackBehavior,
+        behaviorVersion,
     ]);
 
     return (

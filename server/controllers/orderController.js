@@ -4,6 +4,7 @@ import Address from "../models/Address.js";
 import stripe from "stripe";
 import User from "../models/User.js";
 import UserBehavior from "../models/UserBehavior.js";
+import Recommendation from "../models/Recommendation.js";
 
 // Helper: ghi purchase events vào UserBehavior
 const trackPurchaseEvents = async (userId, items) => {
@@ -16,6 +17,7 @@ const trackPurchaseEvents = async (userId, items) => {
             timestamp: new Date(),
         }));
         await UserBehavior.insertMany(events);
+        await Recommendation.deleteOne({ type: 'user_based', referenceId: String(userId) });
     } catch (err) {
         console.error('Lỗi ghi nhận hành vi mua hàng:', err.message);
     }

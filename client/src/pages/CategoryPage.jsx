@@ -18,11 +18,11 @@ const CategoryPage = () => {
     });
 
     // Sort State
-    const [sort, setSort] = useState('newest');
+    const [sort, setSort] = useState('recommended');
 
     const clearFilters = () => {
         setFilters({ price: '', rating: 0 });
-        setSort('newest');
+        setSort('recommended');
     };
 
     // Reset filters when crossing category boundaries

@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { useAppContext } from '../context/AppContext';
-import { FiShoppingCart, FiMenu } from 'react-icons/fi';
+import { FiMenu, FiSearch, FiShoppingCart } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const Navbar = () => {
     const [open, setOpen] = React.useState(false);
+    const [profileOpen, setProfileOpen] = React.useState(false);
+    const profileMenuRef = useRef(null);
     const { user, setUser, setShowUserLogin, navigate, setSearchQuery, searchQuery, getCartCount, axios, setCartItems } = useAppContext();
 
     const logout = async () => {
@@ -16,6 +18,8 @@ const Navbar = () => {
                 toast.success(data.message);
                 setUser(null);
                 setCartItems({});
+                setProfileOpen(false);
+                setOpen(false);
                 navigate('/');
             } else {
                 toast.error(data.message);
@@ -33,76 +37,107 @@ const Navbar = () => {
         }
     }, [navigate, searchQuery]);
 
+    useEffect(() => {
+        const closeProfileMenu = (event) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+                setProfileOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', closeProfileMenu);
+        return () => document.removeEventListener('mousedown', closeProfileMenu);
+    }, []);
+
     return (
-        <nav className="bg-[#d70018] border-b border-gray-300 shadow-md sticky top-0 z-2000">
-            <div className="w-full max-w-[1280px] mx-auto py-4 px-2 grid grid-cols-12 items-center">
-                {/* Logo */}
-                <div className="col-span-2">
-                    <NavLink to='/' onClick={() => setOpen(false)} className="text-2xl font-bold text-white">
-                        MyStore
-                    </NavLink>
-                </div>
-
-                {/* Desktop Menu */}
-                <div className="col-span-3 hidden md:flex justify-center gap-6">
-                    <NavLink to='/' className="hover:underline">Trang chủ</NavLink>
-                    <NavLink to='/products' className="hover:underline">Tất cả sản phẩm</NavLink>
-                    <NavLink to='/contact' className="hover:underline">Liên hệ</NavLink>
-                </div>
-
-                {/* Search + Cart + Login */}
-                <div className="col-span-7 flex items-center gap-4">
-                    {/* Search */}
-                    <div className="hidden lg:flex items-center text-sm gap-2 border border-gray-200 px-4 rounded-full bg-white flex-1">
-                        <input
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="py-1.5 w-full bg-transparent outline-none placeholder-gray-500 text-black"
-                            type="text"
-                            placeholder="Tìm kiếm sản phẩm..."
-                        />
-                        <img src={assets.search_icon} alt="search" className='w-4 h-4' />
+        <nav className="bg-[#d70018] border-b border-[#b80014] shadow-md sticky top-0 z-2000">
+            <div className="px-6 md:px-16 lg:px-24 xl:px-32">
+                <div className="w-full max-w-[1200px] mx-auto h-16 flex items-center gap-6">
+                    {/* Logo */}
+                    <div className="shrink-0">
+                        <NavLink to='/' onClick={() => setOpen(false)} className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                            MyStore
+                        </NavLink>
                     </div>
 
-                    {/* Cart */}
-                    <div onClick={() => navigate("/cart")} className="relative cursor-pointer">
-                        <FiShoppingCart className="w-6 h-6 opacity-90 text-white" />
-                        <button className="absolute -top-2 -right-3 text-xs bg-white text-[#d70018] w-[18px] h-[18px] rounded-full font-bold">
-                            {getCartCount()}
-                        </button>
+                    {/* Desktop Menu */}
+                    <div className="hidden md:flex items-center gap-1 text-white/95 font-medium shrink-0">
+                        <NavLink to='/' className="px-3 py-2 rounded-full hover:bg-white/15 transition-colors whitespace-nowrap">Trang chủ</NavLink>
+                        <NavLink to='/products' className="px-3 py-2 rounded-full hover:bg-white/15 transition-colors whitespace-nowrap">Tất cả sản phẩm</NavLink>
+                        <NavLink to='/contact' className="px-3 py-2 rounded-full hover:bg-white/15 transition-colors whitespace-nowrap">Liên hệ</NavLink>
                     </div>
 
-                    {/* Login / User */}
-                    {!user ? (
-                        <button onClick={() => {
-                            setOpen(false);
-                            setShowUserLogin(true);
-                        }} className="px-6 py-2 bg-white hover:bg-gray-100 transition text-[#d70018] font-semibold rounded-full whitespace-nowrap">
-                            Đăng nhập
-                        </button>
-                    ) : (
-                        <div className='relative group'>
-                            <img src={assets.profile_icon} className='w-10' alt="profile" />
-                            <ul className='hidden group-hover:block absolute top-10 right-0 bg-white shadow border border-gray-200 py-2.5 w-45 rounded-md text-sm z-40 whitespace-nowrap'>
-                                <li onClick={() => navigate("my-orders")} className='p-1.5 pl-3 hover:bg-primary/10 cursor-pointer text-black'>Đơn hàng của tôi</li>
-                                <li onClick={logout} className='p-1.5 pl-3 hover:bg-primary/10 cursor-pointer text-black'>Đăng xuất</li>
-                            </ul>
+                    {/* Search + Cart + Login */}
+                    <div className="hidden md:flex items-center justify-end gap-3 flex-1 min-w-0">
+                        {/* Search */}
+                        <div className="flex items-center text-sm gap-3 border border-white/30 px-4 rounded-full bg-white h-10 w-full max-w-[460px] shadow-sm focus-within:ring-2 focus-within:ring-white/60 transition">
+                            <input
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-transparent outline-none placeholder-gray-500 text-gray-800"
+                                type="text"
+                                placeholder="Tìm kiếm sản phẩm..."
+                            />
+                            <FiSearch className="w-5 h-5 text-gray-500 shrink-0" />
                         </div>
-                    )}
-                </div>
 
-                {/* Mobile: Cart + Toggle */}
-                <div className='flex md:hidden items-center gap-6 col-span-6 justify-end'>
-                    <div onClick={() => navigate("/cart")} className="relative cursor-pointer">
-                        <FiShoppingCart className="w-6 h-6 opacity-90 text-white" />
-                        <button className="absolute -top-2 -right-3 text-xs bg-white text-[#d70018] w-[18px] h-[18px] rounded-full font-bold">
-                            {getCartCount()}
+                        {/* Cart */}
+                        <button onClick={() => navigate("/cart")} className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors shrink-0">
+                            <FiShoppingCart className="w-6 h-6 text-white" />
+                            <span className="absolute -top-1 -right-1 text-xs bg-white text-[#d70018] min-w-[20px] h-5 px-1 rounded-full font-bold flex items-center justify-center">
+                                {getCartCount()}
+                            </span>
                         </button>
+
+                        {/* Login / User */}
+                        {!user ? (
+                            <button onClick={() => {
+                                setOpen(false);
+                                setShowUserLogin(true);
+                            }} className="h-10 px-5 bg-white hover:bg-gray-100 transition text-[#d70018] font-semibold rounded-full whitespace-nowrap shadow-sm">
+                                Đăng nhập
+                            </button>
+                        ) : (
+                            <div ref={profileMenuRef} className='relative'>
+                                <button
+                                    type="button"
+                                    onClick={() => setProfileOpen((current) => !current)}
+                                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                                    aria-label="Mở menu tài khoản"
+                                    aria-expanded={profileOpen}
+                                >
+                                    <img src={assets.profile_icon} className='w-8 h-8 rounded-full' alt="profile" />
+                                </button>
+                                {profileOpen && (
+                                    <ul className='absolute top-12 right-0 bg-white shadow-lg border border-gray-200 py-2.5 w-45 rounded-lg text-sm z-40 whitespace-nowrap'>
+                                        <li
+                                            onClick={() => {
+                                                setProfileOpen(false);
+                                                navigate("my-orders");
+                                            }}
+                                            className='p-1.5 pl-3 hover:bg-primary/10 cursor-pointer text-black'
+                                        >
+                                            Đơn hàng của tôi
+                                        </li>
+                                        <li onClick={logout} className='p-1.5 pl-3 hover:bg-primary/10 cursor-pointer text-black'>Đăng xuất</li>
+                                    </ul>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Mobile Menu Toggle */}
-                    <button onClick={() => setOpen(!open)} aria-label="Menu" className="text-white text-2xl">
-                        <FiMenu />
-                    </button>
+                    {/* Mobile: Cart + Toggle */}
+                    <div className='flex md:hidden items-center gap-3 justify-end ml-auto'>
+                        <button onClick={() => navigate("/cart")} className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+                            <FiShoppingCart className="w-6 h-6 text-white" />
+                            <span className="absolute -top-1 -right-1 text-xs bg-white text-[#d70018] min-w-[20px] h-5 px-1 rounded-full font-bold flex items-center justify-center">
+                                {getCartCount()}
+                            </span>
+                        </button>
+
+                        {/* Mobile Menu Toggle */}
+                        <button onClick={() => setOpen(!open)} aria-label="Menu" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white text-2xl">
+                            <FiMenu />
+                        </button>
+                    </div>
                 </div>
             </div>
 

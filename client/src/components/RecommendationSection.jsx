@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProductCard from "./ProductCard";
 
@@ -19,19 +19,51 @@ const RecommendationSection = ({
     loading = false,
     badge = null,
     badgeColor = "bg-red-100 text-red-600",
-    maxItems = 8,
+    maxItems = 10,
 }) => {
     const sliderRef = useRef(null);
+    const [isPaused, setIsPaused] = useState(false);
+    const displayed = useMemo(
+        () => products.filter(p => p.inStock !== false).slice(0, maxItems),
+        [products, maxItems]
+    );
+    const canSlide = displayed.length > 5;
 
-    const scrollProducts = (direction) => {
+    const scrollProducts = useCallback((direction) => {
         if (!sliderRef.current) return;
 
-        const scrollAmount = sliderRef.current.clientWidth;
+        const firstProduct = sliderRef.current.firstElementChild;
+        const gap = parseFloat(getComputedStyle(sliderRef.current).columnGap) || 0;
+        const scrollAmount = firstProduct
+            ? firstProduct.getBoundingClientRect().width + gap
+            : sliderRef.current.clientWidth;
+
         sliderRef.current.scrollBy({
             left: direction === "left" ? -scrollAmount : scrollAmount,
             behavior: "smooth",
         });
-    };
+    }, []);
+
+    useEffect(() => {
+        if (!canSlide) return undefined;
+        if (isPaused) return undefined;
+
+        const slider = sliderRef.current;
+        if (!slider) return undefined;
+
+        const timer = setInterval(() => {
+            const maxScrollLeft = slider.scrollWidth - slider.clientWidth;
+            if (maxScrollLeft <= 0) return;
+
+            if (slider.scrollLeft >= maxScrollLeft - 4) {
+                slider.scrollTo({ left: 0, behavior: "smooth" });
+            } else {
+                scrollProducts("right");
+            }
+        }, 3500);
+
+        return () => clearInterval(timer);
+    }, [canSlide, displayed.length, isPaused, scrollProducts]);
 
     if (loading) {
         return (
@@ -47,9 +79,6 @@ const RecommendationSection = ({
             </div>
         );
     }
-
-    const displayed = products.filter(p => p.inStock !== false).slice(0, maxItems);
-    const canSlide = displayed.length > 5;
 
     if (displayed.length === 0) return null;
 
@@ -94,6 +123,10 @@ const RecommendationSection = ({
             {/* Product Slider */}
             <div
                 ref={sliderRef}
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+                onTouchStart={() => setIsPaused(true)}
+                onTouchEnd={() => setIsPaused(false)}
                 className="flex gap-3 md:gap-4 overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
                 {displayed.map((product, index) => (

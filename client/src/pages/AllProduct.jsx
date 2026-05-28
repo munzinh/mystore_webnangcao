@@ -17,11 +17,11 @@ const AllProduct = () => {
     });
 
     // Sort State
-    const [sort, setSort] = useState('newest');
+    const [sort, setSort] = useState('recommended');
 
     const clearFilters = () => {
         setFilters({ category: 'all', price: '', rating: 0 });
-        setSort('newest');
+        setSort('recommended');
     };
 
     useEffect(() => {

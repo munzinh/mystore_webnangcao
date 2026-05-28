@@ -12,6 +12,50 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
 
 const getProductId = (item) => String(item?.productId || item?._id || item?.product || '');
 
+const getSoldCountMap = async (productIds = []) => {
+    if (productIds.length === 0) return new Map();
+
+    const soldCounts = await Order.aggregate([
+        {
+            $match: {
+                'items.product': { $in: productIds },
+                status: { $ne: 'Cancelled' },
+                $or: [{ paymentType: 'COD' }, { isPaid: true }],
+            }
+        },
+        { $unwind: '$items' },
+        { $match: { 'items.product': { $in: productIds } } },
+        {
+            $group: {
+                _id: '$items.product',
+                sold: { $sum: '$items.quantity' },
+            }
+        },
+    ]);
+
+    return new Map(soldCounts.map(item => [item._id.toString(), item.sold]));
+};
+
+const addSoldCounts = async (products = []) => {
+    const productIds = products.map(product => product._id);
+    const soldMap = await getSoldCountMap(productIds);
+
+    return products.map(product => {
+        const data = typeof product.toObject === 'function'
+            ? product.toObject()
+            : { ...product };
+        const brandName = typeof data.brand === 'object' ? data.brand?.name : '';
+        const categoryName = typeof data.category === 'object' ? data.category?.name : '';
+
+        return {
+            ...data,
+            brandName: brandName || data.brandName || '',
+            categoryName: categoryName || data.categoryName || '',
+            sold: soldMap.get(product._id.toString()) || 0,
+        };
+    });
+};
+
 const hydrateProducts = async (items, limit = 8) => {
     const orderedIds = items
         .map(getProductId)
@@ -20,7 +64,9 @@ const hydrateProducts = async (items, limit = 8) => {
 
     if (orderedIds.length === 0) return [];
 
-    const products = await Product.find({ _id: { $in: orderedIds }, inStock: true });
+    const products = await Product.find({ _id: { $in: orderedIds }, inStock: true })
+        .populate('category', 'name slug')
+        .populate('brand', 'name slug');
     const productMap = new Map(products.map(product => [product._id.toString(), product]));
 
     return orderedIds
@@ -33,7 +79,7 @@ const getCachedRecommendations = async (type, referenceId, limit = 8) => {
     if (!cache?.recommendations?.length) return null;
 
     const products = await hydrateProducts(cache.recommendations, limit);
-    return products.length ? products : null;
+    return products.length ? addSoldCounts(products) : null;
 };
 
 const saveRecommendationCache = async (type, referenceId, recommendations, algorithm = 'content_based') => {
@@ -65,8 +111,8 @@ const saveRecommendationCache = async (type, referenceId, recommendations, algor
 // ─────────────────────────────────────────────────────────
 const contentBasedFallback = async (productId, topN = 8) => {
     const products = await Product.find({ inStock: true })
-        .populate('category', 'name')
-        .populate('brand', 'name');
+        .populate('category', 'name slug')
+        .populate('brand', 'name slug');
     const tfidf = new TfIdf();
 
     const documents = products.map(p => {
@@ -135,14 +181,14 @@ export const getSimilarProducts = async (req, res) => {
             const products = await hydrateProducts(mlResult.recommendations, 8);
             if (products.length) {
                 await saveRecommendationCache('product_similar', productId, mlResult.recommendations, 'content_based');
-                return res.json({ success: true, recommendations: products, source: 'ml' });
+                return res.json({ success: true, recommendations: await addSoldCounts(products), source: 'ml' });
             }
         }
 
         // Fallback: Node.js TF-IDF
         const recommendations = await contentBasedFallback(productId);
         await saveRecommendationCache('product_similar', productId, recommendations, 'content_based_fallback');
-        return res.json({ success: true, recommendations, source: 'fallback' });
+        return res.json({ success: true, recommendations: await addSoldCounts(recommendations), source: 'fallback' });
     } catch (error) {
         console.error(error);
         res.json({ success: false, message: error.message });
@@ -168,7 +214,7 @@ export const getUserRecommendations = async (req, res) => {
             // Lấy đầy đủ thông tin product và giữ đúng thứ tự score từ ML
             const products = await hydrateProducts(mlResult.recommendations, 8);
             await saveRecommendationCache('user_based', userId, mlResult.recommendations, 'hybrid');
-            return res.json({ success: true, recommendations: products, source: 'ml_hybrid' });
+            return res.json({ success: true, recommendations: await addSoldCounts(products), source: 'ml_hybrid' });
         }
 
         // Fallback: dùng hành vi gần nhất để CB recommend
@@ -190,7 +236,7 @@ export const getUserRecommendations = async (req, res) => {
         const filtered = recommendations.filter(p => !interactedIds.has(p._id.toString()));
 
         await saveRecommendationCache('user_based', userId, filtered, 'content_based_fallback');
-        return res.json({ success: true, recommendations: filtered, source: 'fallback_cb' });
+        return res.json({ success: true, recommendations: await addSoldCounts(filtered), source: 'fallback_cb' });
     } catch (error) {
         console.error(error);
         res.json({ success: false, message: error.message });
@@ -231,7 +277,9 @@ export const getTrendingProducts = async (req, res) => {
 
         if (behaviorAgg.length > 0) {
             const productIds = behaviorAgg.map(b => b._id);
-            const products = await Product.find({ _id: { $in: productIds }, inStock: true });
+            const products = await Product.find({ _id: { $in: productIds }, inStock: true })
+                .populate('category', 'name slug')
+                .populate('brand', 'name slug');
 
             // Sắp xếp theo score
             const scoreMap = {};
@@ -244,15 +292,17 @@ export const getTrendingProducts = async (req, res) => {
                 products.map(product => ({ _id: product._id, score: scoreMap[product._id.toString()] || 0 })),
                 'trending'
             );
-            return res.json({ success: true, recommendations: products, source: 'behavior' });
+            return res.json({ success: true, recommendations: await addSoldCounts(products), source: 'behavior' });
         }
 
         // Fallback nếu chưa có behavior data: lấy sản phẩm mới nhất
         const latestProducts = await Product.find({ inStock: true })
+            .populate('category', 'name slug')
+            .populate('brand', 'name slug')
             .sort({ createdAt: -1 })
             .limit(12);
         await saveRecommendationCache('trending', 'global', latestProducts, 'latest_fallback');
-        return res.json({ success: true, recommendations: latestProducts, source: 'latest' });
+        return res.json({ success: true, recommendations: await addSoldCounts(latestProducts), source: 'latest' });
     } catch (error) {
         console.error(error);
         res.json({ success: false, message: error.message });
@@ -290,7 +340,7 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
             // Fallback: Content-based
             const recommendations = await contentBasedFallback(productId, 5);
             await saveRecommendationCache('bought_together', productId, recommendations, 'content_based_fallback');
-            return res.json({ success: true, recommendations, source: 'fallback_cb' });
+            return res.json({ success: true, recommendations: await addSoldCounts(recommendations), source: 'fallback_cb' });
         }
 
         // Đếm co-occurrence
@@ -313,10 +363,12 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
         if (sorted.length === 0) {
             const recommendations = await contentBasedFallback(productId, 5);
             await saveRecommendationCache('bought_together', productId, recommendations, 'content_based_fallback');
-            return res.json({ success: true, recommendations, source: 'fallback_cb' });
+            return res.json({ success: true, recommendations: await addSoldCounts(recommendations), source: 'fallback_cb' });
         }
 
-        const products = await Product.find({ _id: { $in: sorted }, inStock: true });
+        const products = await Product.find({ _id: { $in: sorted }, inStock: true })
+            .populate('category', 'name slug')
+            .populate('brand', 'name slug');
         // Sắp xếp theo co-occurrence count
         products.sort((a, b) => (coOccurrence[b._id.toString()] || 0) - (coOccurrence[a._id.toString()] || 0));
 
@@ -326,7 +378,7 @@ export const getFrequentlyBoughtTogether = async (req, res) => {
             products.map(product => ({ _id: product._id, score: coOccurrence[product._id.toString()] || 0 })),
             'co_occurrence'
         );
-        return res.json({ success: true, recommendations: products, source: 'co_occurrence' });
+        return res.json({ success: true, recommendations: await addSoldCounts(products), source: 'co_occurrence' });
     } catch (error) {
         console.error(error);
         res.json({ success: false, message: error.message });

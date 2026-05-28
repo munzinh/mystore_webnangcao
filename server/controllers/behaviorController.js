@@ -1,4 +1,5 @@
 import UserBehavior from "../models/UserBehavior.js";
+import Recommendation from "../models/Recommendation.js";
 
 // Weight map cho từng loại event
 const EVENT_WEIGHTS = {
@@ -45,6 +46,7 @@ export const trackEvent = async (req, res) => {
             metadata: metadata || {},
             timestamp: new Date(),
         });
+        await Recommendation.deleteOne({ type: 'user_based', referenceId: String(userId) });
 
         return res.json({ success: true });
     } catch (error) {

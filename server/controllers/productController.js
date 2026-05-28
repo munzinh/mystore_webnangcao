@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import Product from "../models/Product.js";
+import Order from "../models/Order.js";
 import Category from "../models/Category.js";
 import Brand from "../models/Brand.js";
 import pkg from 'natural';
@@ -26,7 +27,39 @@ const normalizeProductResponse = (product) => {
     };
 };
 
-const normalizeProductListResponse = (products = []) => products.map(normalizeProductResponse);
+const getSoldCountMap = async (productIds = []) => {
+    if (productIds.length === 0) return new Map();
+
+    const soldCounts = await Order.aggregate([
+        {
+            $match: {
+                'items.product': { $in: productIds },
+                status: { $ne: 'Cancelled' },
+                $or: [{ paymentType: 'COD' }, { isPaid: true }],
+            }
+        },
+        { $unwind: '$items' },
+        { $match: { 'items.product': { $in: productIds } } },
+        {
+            $group: {
+                _id: '$items.product',
+                sold: { $sum: '$items.quantity' },
+            }
+        },
+    ]);
+
+    return new Map(soldCounts.map(item => [item._id.toString(), item.sold]));
+};
+
+const addSoldCounts = async (products = []) => {
+    const productIds = products.map(product => product._id);
+    const soldMap = await getSoldCountMap(productIds);
+
+    return products.map(product => ({
+        ...normalizeProductResponse(product),
+        sold: soldMap.get(product._id.toString()) || 0,
+    }));
+};
 
 // Helper to upload images
 const uploadMultipleImages = async (reqFiles, prefix, bodyFields) => {
@@ -82,7 +115,7 @@ export const productList = async (req, res) => {
         const products = await Product.find({})
             .populate('category', 'name slug')
             .populate('brand', 'name slug');
-        res.json({ success: true, products: normalizeProductListResponse(products) });
+        res.json({ success: true, products: await addSoldCounts(products) });
     } catch (error) {
         console.error(error.message);
         res.json({ success: false, message: error.message });
@@ -96,7 +129,8 @@ export const productById = async (req, res) => {
         const product = await Product.findById(id)
             .populate('category', 'name slug')
             .populate('brand', 'name slug');
-        res.json({ success: true, product: normalizeProductResponse(product) });
+        const productsWithSold = product ? await addSoldCounts([product]) : [];
+        res.json({ success: true, product: productsWithSold[0] || null });
     } catch (error) {
         console.error(error.message);
         res.json({ success: false, message: error.message });
@@ -210,9 +244,9 @@ export const recommendProducts = async (req, res) => {
         const top = similarities
             .filter(s => s.idx !== targetIndex)
             .slice(0, 5)
-            .map(s => normalizeProductResponse(products[s.idx]));
+            .map(s => products[s.idx]);
 
-        res.json({ success: true, recommendations: top });
+        res.json({ success: true, recommendations: await addSoldCounts(top) });
     } catch (error) {
         console.error(error.message);
         res.json({ success: false, message: error.message });
@@ -242,7 +276,7 @@ export const searchProducts = async (req, res) => {
             .sort(q ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
             .limit(20);
 
-        res.json({ success: true, products: normalizeProductListResponse(products) });
+        res.json({ success: true, products: await addSoldCounts(products) });
     } catch (error) {
         console.error(error.message);
         res.json({ success: false, message: error.message });
