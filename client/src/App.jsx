@@ -2,7 +2,7 @@ import React from 'react';
 import Navbar from './components/Navbar';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import Footer from './components/Footer';
 import { useAppContext } from './context/AppContext';
 import Login from './components/Login';
@@ -27,6 +27,34 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import WarrantyPolicy from './pages/WarrantyPolicy';
 import ScrollToTop from './components/ScrollToTop';
 import ProductDetail from './components/ProductOptions';
+import RecommendationSurveyPopup from './components/RecommendationSurveyPopup';
+
+const setupToastDeduplication = () => {
+    if (toast.__mystoreDeduped) return;
+
+    const makeToastId = (type, message) => (
+        typeof message === "string"
+            ? `${type}:${message}`
+            : undefined
+    );
+
+    const originalSuccess = toast.success;
+    const originalError = toast.error;
+
+    toast.success = (message, options = {}) => originalSuccess(message, {
+        id: options.id ?? makeToastId("success", message),
+        ...options,
+    });
+
+    toast.error = (message, options = {}) => originalError(message, {
+        id: options.id ?? makeToastId("error", message),
+        ...options,
+    });
+
+    toast.__mystoreDeduped = true;
+};
+
+setupToastDeduplication();
 
 const App = () => {
     const isSellerPath = useLocation().pathname.includes("seller");
@@ -36,7 +64,19 @@ const App = () => {
         <div className='text-default min-h-screen textgray-700 bg-[#f4f6f8]'>
             {isSellerPath ? null : <Navbar />}
             {showUserLogin ? <Login /> : null}
-            <Toaster />
+            <Toaster
+                position="top-center"
+                gutter={10}
+                toastOptions={{
+                    duration: 1800,
+                    style: {
+                        borderRadius: "10px",
+                        boxShadow: "0 12px 30px rgba(15, 23, 42, 0.18)",
+                        color: "#374151",
+                        fontWeight: 500,
+                    },
+                }}
+            />
             <div className={`${isSellerPath ? "" : "px-6 md:px-16 lg:px-24 xl:px-32"}`}>
                 <Routes>
                     <Route path='/' element={<Home />} />
@@ -64,7 +104,8 @@ const App = () => {
             {!isSellerPath && <Footer />}
 
             {/* Đặt nút cuộn lên đầu trang ở đây để nó xuất hiện trên toàn bộ ứng dụng */}
-            <ScrollToTop />
+            {!isSellerPath && <RecommendationSurveyPopup />}
+            {!isSellerPath && <ScrollToTop />}
         </div>
         
     );

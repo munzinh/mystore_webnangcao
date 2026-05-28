@@ -1,17 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { assets } from "../assets/assets";
 import toast from "react-hot-toast";
 import RecommendationSection from "../components/RecommendationSection";
+import { SURVEY_AFTER_PURCHASE_KEY } from "../components/RecommendationSurveyPopup";
 
 const Cart = () => {
-    const { products, cartItems, removeFromCart, getCartCount, updateCartItem, navigate, getCartAmount, axios, user, setCartItems, fetchProducts } = useAppContext();
+    const { products, cartItems, removeFromCart, getCartCount, updateCartItem, navigate, axios, user, setCartItems, fetchProducts } = useAppContext();
     const [addresses, setAddresses] = useState([]);
     const [showAddress, setShowAddress] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [paymentOption, setPaymentOption] = useState("COD");
     const [boughtTogether, setBoughtTogether] = useState([]);
     const [boughtLoading, setBoughtLoading] = useState(false);
+    const [selectedProductIds, setSelectedProductIds] = useState([]);
+    const previousCartIdsRef = useRef([]);
 
     // Hàm định dạng tiền tệ VND
     const formatCurrency = (amount) => {
@@ -24,6 +27,16 @@ const Cart = () => {
             return product ? { ...product, quantity } : null;
         })
         .filter(Boolean), [cartItems, products]);
+
+    const selectedCartArray = useMemo(
+        () => cartArray.filter((item) => selectedProductIds.includes(item._id)),
+        [cartArray, selectedProductIds]
+    );
+
+    const selectedAmount = useMemo(() => selectedCartArray
+        .reduce((total, item) => total + item.offerPrice * item.quantity, 0), [selectedCartArray]);
+
+    const isAllSelected = cartArray.length > 0 && selectedProductIds.length === cartArray.length;
 
     const getUserAddress = useCallback(async () => {
         try {
@@ -47,17 +60,27 @@ const Cart = () => {
             if (!selectedAddress) {
                 return toast.error("Vui lòng chọn địa chỉ giao hàng");
             }
+            if (selectedCartArray.length === 0) {
+                return toast.error("Vui lòng chọn ít nhất một sản phẩm");
+            }
+
+            const orderItems = selectedCartArray.map(item => ({ product: item._id, quantity: item.quantity }));
+            const remainingCartItems = { ...(cartItems || {}) };
+            selectedCartArray.forEach((item) => {
+                delete remainingCartItems[item._id];
+            });
 
             //Place Order with COD
             if (paymentOption === "COD") {
                 const { data } = await axios.post('/api/order/cod', {
                     userId: user._id,
-                    items: cartArray.map(item => ({ product: item._id, quantity: item.quantity })),
+                    items: orderItems,
                     address: selectedAddress._id
                 })
                 if (data.success) {
                     toast.success(data.message);
-                    setCartItems({});
+                    localStorage.setItem(SURVEY_AFTER_PURCHASE_KEY, "true");
+                    setCartItems(remainingCartItems);
                     fetchProducts();
                     navigate('/my-orders')
                 } else {
@@ -68,10 +91,11 @@ const Cart = () => {
                 if (paymentOption === "Online") {
                     const { data } = await axios.post('/api/order/stripe', {
                         userId: user._id,
-                        items: cartArray.map(item => ({ product: item._id, quantity: item.quantity })),
+                        items: orderItems,
                         address: selectedAddress._id
                     })
                     if (data.success) {
+                        localStorage.setItem(SURVEY_AFTER_PURCHASE_KEY, "true");
                         window.location.replace(data.url)
                     } else {
                         toast.error(data.message)
@@ -89,9 +113,31 @@ const Cart = () => {
         }
     }, [getUserAddress, user])
 
-    // Fetch "Frequently Bought Together" dựa trên sản phẩm đầu tiên trong giỏ hàng
     useEffect(() => {
-        const firstCartItem = Object.keys(cartItems || {})[0];
+        setSelectedProductIds((current) => {
+            const cartIds = cartArray.map((item) => item._id);
+            const previousCartIds = previousCartIdsRef.current;
+            previousCartIdsRef.current = cartIds;
+
+            return cartIds.filter((id) => current.includes(id) || !previousCartIds.includes(id));
+        });
+    }, [cartArray]);
+
+    const toggleProductSelection = (productId) => {
+        setSelectedProductIds((current) => (
+            current.includes(productId)
+                ? current.filter((id) => id !== productId)
+                : [...current, productId]
+        ));
+    };
+
+    const toggleAllProducts = () => {
+        setSelectedProductIds(isAllSelected ? [] : cartArray.map((item) => item._id));
+    };
+
+    // Fetch "Frequently Bought Together" dựa trên sản phẩm được chọn đầu tiên
+    useEffect(() => {
+        const firstCartItem = selectedProductIds[0] || Object.keys(cartItems || {})[0];
         if (!firstCartItem) {
             setBoughtTogether([]);
             return;
@@ -113,7 +159,7 @@ const Cart = () => {
             }
         };
         fetchBoughtTogether();
-    }, [axios, cartItems]);
+    }, [axios, cartItems, selectedProductIds]);
 
     return products.length > 0 && cartItems ? (
         <div className="flex flex-col md:flex-row mt-16 mx-auto max-w-screen-xl px-4">
@@ -122,14 +168,31 @@ const Cart = () => {
                     Giỏ hàng <span className="text-sm text-[#d70018]">{getCartCount()} Sản phẩm</span>
                 </h1>
 
-                <div className="grid grid-cols-[2fr_1fr_1fr] text-gray-500 text-base font-medium pb-3">
+                <div className="grid grid-cols-[44px_2fr_1fr_140px_1fr] text-gray-500 text-base font-medium pb-3">
+                    <button
+                        type="button"
+                        onClick={toggleAllProducts}
+                        className={`h-5 w-5 rounded border transition ${isAllSelected ? "border-[#d70018] bg-[#d70018]" : "border-gray-300 bg-white"}`}
+                        aria-label={isAllSelected ? "Bỏ chọn tất cả sản phẩm" : "Chọn tất cả sản phẩm"}
+                    >
+                        {isAllSelected && <span className="block text-xs leading-5 text-white">✓</span>}
+                    </button>
                     <p className="text-left">Sản phẩm</p>
                     <p className="text-center">Giá</p>
+                    <p className="text-center">Số lượng</p>
                     <p className="text-center">Hoàn trả</p>
                 </div>
 
                 {cartArray.map((product, index) => (
-                    <div key={index} className="grid grid-cols-[2fr_1fr_1fr] text-gray-500 items-center text-sm md:text-base font-medium pt-3">
+                    <div key={index} className="grid grid-cols-[44px_2fr_1fr_140px_1fr] text-gray-500 items-center text-sm md:text-base font-medium pt-3">
+                        <button
+                            type="button"
+                            onClick={() => toggleProductSelection(product._id)}
+                            className={`h-5 w-5 rounded border transition ${selectedProductIds.includes(product._id) ? "border-[#d70018] bg-[#d70018]" : "border-gray-300 bg-white"}`}
+                            aria-label={selectedProductIds.includes(product._id) ? `Bỏ chọn ${product.name}` : `Chọn ${product.name}`}
+                        >
+                            {selectedProductIds.includes(product._id) && <span className="block text-xs leading-5 text-white">✓</span>}
+                        </button>
                         <div className="flex items-center md:gap-6 gap-3">
                             <div onClick={() => {
                                 const categoryPath = product.category?.slug || product.category?.name || product.category;
@@ -143,20 +206,29 @@ const Cart = () => {
                                 <p className="hidden md:block font-semibold">{product.name}</p>
                                 <div className="font-normal text-gray-500/70">
                                     <p>Weight: <span>{product.weight || "N/A"}</span></p>
-                                    <div className='flex items-center'>
-                                        <p>Số lượng:</p>
-                                        <select onChange={e => updateCartItem(product._id, Number(e.target.value))}
-                                            value={cartItems[product._id]}
-                                            className='outline-none'>
-                                            {Array(cartItems[product._id] > 9 ? cartItems[product._id] : 9).fill('').map((_, index) => (
-                                                <option key={index} value={index + 1}>{index + 1}</option>
-                                            ))}
-                                        </select>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                         <p className="text-center text-[#d70018]">{formatCurrency(product.offerPrice * product.quantity)}</p>
+                        <div className="mx-auto flex h-9 w-[112px] items-center justify-between overflow-hidden rounded-lg border border-gray-300 bg-white">
+                            <button
+                                type="button"
+                                onClick={() => updateCartItem(product._id, Math.max(1, Number(product.quantity) - 1))}
+                                className="h-full w-9 text-lg font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-[#d70018]"
+                                aria-label={`Giảm số lượng ${product.name}`}
+                            >
+                                -
+                            </button>
+                            <span className="min-w-8 text-center text-sm font-semibold text-gray-800">{product.quantity}</span>
+                            <button
+                                type="button"
+                                onClick={() => updateCartItem(product._id, Number(product.quantity) + 1)}
+                                className="h-full w-9 text-lg font-semibold text-gray-500 transition hover:bg-gray-100 hover:text-[#d70018]"
+                                aria-label={`Tăng số lượng ${product.name}`}
+                            >
+                                +
+                            </button>
+                        </div>
                         <button onClick={() => removeFromCart(product._id)} className="cursor-pointer mx-auto">
                             <img src={assets.remove_icon} alt="remove" className="inline-block w-6 h-6" />
                         </button>
@@ -218,7 +290,10 @@ const Cart = () => {
 
                 <div className="text-gray-500 mt-4 space-y-2">
                     <p className="flex justify-between">
-                        <span>Giá</span><span>{formatCurrency(getCartAmount())}</span>
+                        <span>Đã chọn</span><span>{selectedCartArray.length}/{cartArray.length} sản phẩm</span>
+                    </p>
+                    <p className="flex justify-between">
+                        <span>Giá</span><span>{formatCurrency(selectedAmount)}</span>
                     </p>
                     <p className="flex justify-between">
                         <span>Phí giao hàng</span><span className="text-green-600">Free</span>
@@ -228,7 +303,7 @@ const Cart = () => {
                     </p>
                     <p className="flex justify-between text-lg font-medium mt-3">
                         <span>Tổng tiền:</span>
-                        <span className="text-[#d70018]">{formatCurrency(getCartAmount())}</span>
+                        <span className="text-[#d70018]">{formatCurrency(selectedAmount)}</span>
                     </p>
                 </div>
 

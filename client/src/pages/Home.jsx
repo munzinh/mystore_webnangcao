@@ -4,7 +4,6 @@ import Categories from '../components/Categories';
 import BestSeller from '../components/BestSeller';
 import Marquee from "../components/Marquee";
 import RecommendationSection from '../components/RecommendationSection';
-import RecommendationSurveyPopup from '../components/RecommendationSurveyPopup';
 import { useAppContext } from '../context/AppContext';
 
 const Home = () => {
@@ -94,7 +93,6 @@ const Home = () => {
           badgeColor="bg-orange-100 text-orange-600"
         />
 
-        <RecommendationSurveyPopup />
       </div>
     </div>
   );

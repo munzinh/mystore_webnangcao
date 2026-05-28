@@ -119,7 +119,7 @@ export const AppContextProvider = ({ children }) => {
             }
             return nextCart;
         });
-        toast.success("Đã cập nhật giỏ hàng");
+        toast.success("Đã cập nhật giỏ hàng", { id: "cart-update" });
     }, []);
 
     const removeFromCart = useCallback((itemId) => {

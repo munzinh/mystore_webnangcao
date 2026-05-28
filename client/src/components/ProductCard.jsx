@@ -14,7 +14,7 @@ const getMinPrice = (product, field) => {
 const isObjectId = (value) => typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
 
 const ProductCard = ({ product }) => {
-    const { addToCart, removeFromCart, cartItems, navigate } = useAppContext();
+    const { addToCart, navigate } = useAppContext();
 
     const formatCurrency = (amount) =>
         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -135,21 +135,13 @@ const ProductCard = ({ product }) => {
 
                     {/* Add to cart */}
                     <div onClick={(e) => e.stopPropagation()} className="text-[#d70018] text-sm">
-                        {!cartItems[product._id] ? (
-                            <button
-                                onClick={() => addToCart(product._id)}
-                                className="flex items-center justify-center gap-1 bg-[#d70018] border border-[#d70018] w-[70px] h-[30px] rounded text-white text-sm"
-                            >
-                                <FaShoppingCart size={14} />
-                                Thêm
-                            </button>
-                        ) : (
-                            <div className="flex items-center justify-center gap-2 w-[70px] h-[30px] bg-[#d70018]/25 rounded select-none">
-                                <button onClick={() => removeFromCart(product._id)} className="px-1">−</button>
-                                <span>{cartItems[product._id]}</span>
-                                <button onClick={() => addToCart(product._id)} className="px-1">+</button>
-                            </div>
-                        )}
+                        <button
+                            onClick={() => addToCart(product._id)}
+                            className="flex items-center justify-center gap-1 bg-[#d70018] border border-[#d70018] w-[70px] h-[30px] rounded text-white text-sm transition hover:bg-[#b80014]"
+                        >
+                            <FaShoppingCart size={14} />
+                            Thêm
+                        </button>
                     </div>
                 </div>
             </div>

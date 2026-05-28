@@ -43,6 +43,18 @@ const getAddressSnapshot = async (addressId) => {
     }
 };
 
+const removePurchasedItemsFromCart = async (userId, items) => {
+    const user = await User.findById(userId);
+    if (!user) return;
+
+    const nextCartItems = { ...(user.cartItems || {}) };
+    items.forEach((item) => {
+        delete nextCartItems[String(item.product)];
+    });
+
+    await User.findByIdAndUpdate(userId, { cartItems: nextCartItems });
+};
+
 //Place order COD: /api/order/cod
 export const placeOrderCOD = async (req, res) => {
     try {
@@ -65,9 +77,6 @@ export const placeOrderCOD = async (req, res) => {
             };
         }));
 
-        // Add Tax charge (2%)
-        amount += Math.floor(amount * 0.02);
-
         // Snapshot địa chỉ giao hàng
         const shippingAddress = await getAddressSnapshot(address);
 
@@ -79,7 +88,7 @@ export const placeOrderCOD = async (req, res) => {
             shippingAddress,
             paymentType: 'COD',
         });
-        await User.findByIdAndUpdate(userId, { cartItems: {} });
+        await removePurchasedItemsFromCart(userId, items);
         // Track purchase behavior
         await trackPurchaseEvents(userId, items);
         return res.json({ success: true, message: 'Đặt hàng thành công' });
@@ -120,9 +129,6 @@ export const placeOrderStripe = async (req, res) => {
             };
         }));
 
-        // Add Tax charge (2%)
-        amount += Math.floor(amount * 0.02);
-
         // Snapshot địa chỉ giao hàng
         const shippingAddress = await getAddressSnapshot(address);
 
@@ -147,7 +153,7 @@ export const placeOrderStripe = async (req, res) => {
                     product_data: {
                         name: item.name,
                     },
-                    unit_amount: Math.floor((item.price + item.price * 0.02) / 24700 * 100)
+                    unit_amount: Math.floor(item.price / 24700 * 100)
                 },
                 quantity: item.quantity,
             }
@@ -204,10 +210,10 @@ export const stripeWebhooks = async (req, res) => {
             const { orderId, userId } = session.data[0].metadata;
             //Mark payment as paid
             await Order.findByIdAndUpdate(orderId, { isPaid: true })
-            //Clear user cart
-            await User.findByIdAndUpdate(userId, { cartItems: {} });
-            // Track purchase behavior
             const order = await Order.findById(orderId);
+            // Remove purchased items from user cart
+            await removePurchasedItemsFromCart(userId, order?.items || []);
+            // Track purchase behavior
             if (order) await trackPurchaseEvents(userId, order.items);
             break;
         }
@@ -218,8 +224,11 @@ export const stripeWebhooks = async (req, res) => {
             if (orderId) {
                 //Mark payment as paid
                 await Order.findByIdAndUpdate(orderId, { isPaid: true });
-                //Clear user cart
-                if (userId) await User.findByIdAndUpdate(userId, { cartItems: {} });
+                // Remove purchased items from user cart
+                if (userId) {
+                    const order = await Order.findById(orderId);
+                    if (order) await removePurchasedItemsFromCart(userId, order.items);
+                }
             }
             break;
         }
@@ -255,7 +264,7 @@ export const getUserOrders = async (req, res) => {
             userId,
             $or: [{ paymentType: 'COD' }, { isPaid: true }]
         })
-        .populate('items.product', 'name image price offerPrice brand category') // Chỉ lấy các field cần thiết
+        .populate('items.product', 'name image price offerPrice brand category variants') // Chỉ lấy các field cần thiết
         .sort({ createdAt: -1 });
         res.json({ success: true, orders });
     } catch (error) {

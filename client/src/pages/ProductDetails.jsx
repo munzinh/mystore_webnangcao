@@ -69,6 +69,17 @@ const ProductDetails = () => {
     const displayOfferPrice = selectedVariant?.offerPrice ?? product?.offerPrice;
     const variantStock  = selectedVariant != null ? (selectedVariant.inStock ?? 0) : (product?.inStock ? 1 : 0);
     const isOutOfStock  = variantStock === 0;
+    const getVariantLabel = (variant, fallback) => {
+        if (!variant) return fallback;
+        if (variant.variantLabel) return variant.variantLabel;
+
+        const attributes = variant.attributes instanceof Map
+            ? Object.fromEntries(variant.attributes)
+            : variant.attributes || {};
+        const label = Object.values(attributes).filter(Boolean).join(" / ");
+
+        return label || fallback;
+    };
 
     const thumbEls = [];
     const setThumbRef = (el, idx) => { thumbEls[idx] = el; };
@@ -164,10 +175,10 @@ const ProductDetails = () => {
                         </div>
 
                         {/* Variant selector (GIỮ LẠI PHẦN NÀY - Label: Phiên bản) */}
-                        {hasVariants && product.variants.length > 1 && (
+                        {hasVariants && (
                             <div className="mt-5">
                                 <p className="text-sm font-medium text-gray-700 mb-2">
-                                    Phiên bản: <span className="text-[#d70018] font-semibold">{product.variants[selectedVariantIdx]?.variantLabel || `Phiên bản ${selectedVariantIdx + 1}`}</span>
+                                    Phiên bản: <span className="text-[#d70018] font-semibold">{getVariantLabel(product.variants[selectedVariantIdx], `Phiên bản ${selectedVariantIdx + 1}`)}</span>
                                 </p>
                                 <div className="flex flex-wrap gap-2">
                                     {product.variants.map((v, idx) => {
@@ -180,7 +191,7 @@ const ProductDetails = () => {
                                                 disabled={outOfStock}
                                                 className={[
                                                     "relative px-3 py-1.5 text-sm rounded-md border transition-all duration-200",
-                                                    isSelected ? "border-[#d70018] bg-[#d70018]/5 text-[#d70018] font-semibold ring-1 ring-[#d70018]" : 
+                                                    isSelected ? "border-[#d70018] bg-[#d70018]/5 text-[#d70018] font-semibold ring-1 ring-[#d70018]" :
                                                     outOfStock ? "border-gray-200 text-gray-300 cursor-not-allowed bg-gray-50" : "border-gray-300 text-gray-700 hover:border-[#d70018]/60 hover:text-[#d70018]"
                                                 ].join(" ")}
                                             >
@@ -189,7 +200,7 @@ const ProductDetails = () => {
                                                         <span className="w-full h-px bg-gray-300 rotate-[-14deg]" />
                                                     </span>
                                                 )}
-                                                {v.variantLabel || `Phiên bản ${idx + 1}`}
+                                                {getVariantLabel(v, `Phiên bản ${idx + 1}`)}
                                             </button>
                                         );
                                     })}
@@ -197,8 +208,8 @@ const ProductDetails = () => {
                                 {/* Tồn kho của variant */}
                                 <p className="mt-2 text-xs">
                                     {isOutOfStock
-                                        ? <span className="text-red-500 font-medium">⚠ Phiên bản này đã hết hàng</span>
-                                        : <span className="text-green-600">✓ Còn {variantStock} sản phẩm</span>
+                                        ? <span className="text-red-500 font-medium">Hết hàng</span>
+                                        : <span className="text-gray-600/70">Kho: {variantStock}</span>
                                     }
                                 </p>
                             </div>
