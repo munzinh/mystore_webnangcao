@@ -9,7 +9,7 @@ const authUser = async (req, res, next) => {
     const token = tokenFromCookie || tokenFromHeader || req.query?.token || req.body?.token;
 
     if (!token) {
-        return res.status(401).json({ success: false, message: 'Không có quyền truy cập' });
+        return res.json({ success: false, message: 'Not Authorized' });
     }
 
     try {
@@ -20,10 +20,10 @@ const authUser = async (req, res, next) => {
             return next(); // Cho phép tiếp tục nếu xác thực thành công
         }
 
-        return res.status(401).json({ success: false, message: 'Không có quyền truy cập' });
+        return res.json({ success: false, message: 'Not Authorized' });
 
     } catch (error) {
-        return res.status(401).json({ success: false, message: 'Lỗi xác thực: ' + error.message });
+        return res.json({ success: false, message: error.message });
     }
 };
 
