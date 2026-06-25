@@ -25,7 +25,7 @@ export const register = async (req, res)=>{
         res.cookie('token',token, {
             httpOnly: true, // Ngăn JavaScript truy cập cookie
             secure: process.env.NODE_ENV === 'production', // Dùng cookie bảo mật trong production
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', // Bảo vệ CSRF
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Bảo vệ CSRF
             maxAge: 7*24*60*60*1000, // Thời gian hết hạn cookie
         })
 
@@ -59,7 +59,7 @@ export const login = async (req, res)=>{
         res.cookie('token',token, {
             httpOnly: true, // Ngăn JavaScript truy cập cookie
             secure: process.env.NODE_ENV === 'production', // Dùng cookie bảo mật trong production
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', // Bảo vệ CSRF
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Bảo vệ CSRF
             maxAge: 7*24*60*60*1000, // Thời gian hết hạn cookie
         })
 
@@ -91,7 +91,7 @@ export const logout = async(req,res)=>{
         res.clearCookie('token',{
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none':'strict',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none':'lax',
         });
         return res.json({success: true, message: "Đã đăng xuất"})
     } catch (error) {

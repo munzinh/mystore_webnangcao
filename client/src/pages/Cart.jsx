@@ -5,6 +5,17 @@ import toast from "react-hot-toast";
 import RecommendationSection from "../components/RecommendationSection";
 import { SURVEY_AFTER_PURCHASE_KEY } from "../components/RecommendationSurveyPopup";
 
+const getVariantLabel = (variant) => {
+    if (!variant) return "";
+    if (variant.variantLabel) return variant.variantLabel;
+
+    const attributes = variant.attributes instanceof Map
+        ? Object.fromEntries(variant.attributes)
+        : variant.attributes || {};
+
+    return Object.values(attributes).filter(Boolean).join(" / ");
+};
+
 const Cart = () => {
     const { products, cartItems, removeFromCart, getCartCount, updateCartItem, navigate, axios, user, setCartItems, fetchProducts } = useAppContext();
     const [addresses, setAddresses] = useState([]);
@@ -24,7 +35,12 @@ const Cart = () => {
     const cartArray = useMemo(() => Object.entries(cartItems || {})
         .map(([productId, quantity]) => {
             const product = products.find((item) => item._id === productId);
-            return product ? { ...product, quantity } : null;
+            const variant = product?.variants?.[0];
+            return product ? {
+                ...product,
+                quantity,
+                variantInfo: getVariantLabel(variant),
+            } : null;
         })
         .filter(Boolean), [cartItems, products]);
 
@@ -64,7 +80,10 @@ const Cart = () => {
                 return toast.error("Vui lòng chọn ít nhất một sản phẩm");
             }
 
-            const orderItems = selectedCartArray.map(item => ({ product: item._id, quantity: item.quantity }));
+            const orderItems = selectedCartArray.map(item => ({
+                product: item._id,
+                quantity: item.quantity,
+            }));
             const remainingCartItems = { ...(cartItems || {}) };
             selectedCartArray.forEach((item) => {
                 delete remainingCartItems[item._id];
@@ -137,7 +156,7 @@ const Cart = () => {
 
     // Fetch "Frequently Bought Together" dựa trên sản phẩm được chọn đầu tiên
     useEffect(() => {
-        const firstCartItem = selectedProductIds[0] || Object.keys(cartItems || {})[0];
+        const firstCartItem = selectedCartArray[0]?._id || Object.keys(cartItems || {})[0];
         if (!firstCartItem) {
             setBoughtTogether([]);
             return;
@@ -159,7 +178,7 @@ const Cart = () => {
             }
         };
         fetchBoughtTogether();
-    }, [axios, cartItems, selectedProductIds]);
+    }, [axios, cartItems, selectedCartArray]);
 
     return products.length > 0 && cartItems ? (
         <div className="flex flex-col md:flex-row mt-16 mx-auto max-w-screen-xl px-4">
@@ -204,9 +223,11 @@ const Cart = () => {
                             </div>
                             <div>
                                 <p className="hidden md:block font-semibold">{product.name}</p>
-                                <div className="font-normal text-gray-500/70">
-                                    <p>Weight: <span>{product.weight || "N/A"}</span></p>
-                                </div>
+                                {product.variantInfo && (
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Phân loại: <span className="font-medium text-gray-700">{product.variantInfo}</span>
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <p className="text-center text-[#d70018]">{formatCurrency(product.offerPrice * product.quantity)}</p>

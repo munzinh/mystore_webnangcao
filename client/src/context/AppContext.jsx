@@ -4,7 +4,20 @@ import toast from "react-hot-toast";
 import axios from "axios";
 
 axios.defaults.withCredentials = true;
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+
+const getBackendUrl = () => {
+    const configuredUrl = import.meta.env.VITE_BACKEND_URL;
+    if (!configuredUrl) return 'http://localhost:4000';
+    
+    // If frontend is accessed from another device (non-localhost) but backend URL points to localhost,
+    // dynamically swap 'localhost' with the current IP hostname of the server.
+    if (configuredUrl.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        return configuredUrl.replace('localhost', window.location.hostname);
+    }
+    return configuredUrl;
+};
+
+axios.defaults.baseURL = getBackendUrl();
 axios.defaults.headers.get['Cache-Control'] = 'no-cache';
 
 export const AppContext = createContext();
