@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 
 axios.defaults.withCredentials = true;
+const LOCAL_TOKEN_KEY = 'mystore_token';
 
 const getBackendUrl = () => {
     const configuredUrl = import.meta.env.VITE_BACKEND_URL?.trim().replace(/^['"]|['"]$/g, '');
@@ -26,6 +27,27 @@ export const AppContext = createContext();
 export const AppContextProvider = ({ children }) => {
     const currency = import.meta.env.VITE_CURRENCY;
     const navigate = useNavigate();
+    const initialToken = typeof window !== 'undefined' ? localStorage.getItem(LOCAL_TOKEN_KEY) : null;
+    const [token, setToken] = useState(initialToken);
+
+    if (token) {
+        axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+    } else {
+        delete axios.defaults.headers.common.Authorization;
+    }
+
+    const setAuthToken = useCallback((newToken) => {
+        if (typeof window === 'undefined') return;
+        if (newToken) {
+            localStorage.setItem(LOCAL_TOKEN_KEY, newToken);
+            axios.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+            setToken(newToken);
+        } else {
+            localStorage.removeItem(LOCAL_TOKEN_KEY);
+            delete axios.defaults.headers.common.Authorization;
+            setToken(null);
+        }
+    }, []);
 
     const [user, setUser] = useState(null);
     const [isSeller, setIsSeller] = useState(false);
@@ -240,6 +262,8 @@ export const AppContextProvider = ({ children }) => {
         setCartItems,
         trackBehavior,
         behaviorVersion,
+        token,
+        setAuthToken,
     }), [
         navigate,
         user,
