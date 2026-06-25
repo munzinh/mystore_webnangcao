@@ -9,13 +9,14 @@ const Navbar = () => {
     const [open, setOpen] = React.useState(false);
     const [profileOpen, setProfileOpen] = React.useState(false);
     const profileMenuRef = useRef(null);
-    const { user, setUser, setShowUserLogin, navigate, setSearchQuery, searchQuery, getCartCount, axios, setCartItems } = useAppContext();
+    const { user, setUser, setShowUserLogin, navigate, setSearchQuery, searchQuery, getCartCount, axios, setCartItems, setAuthToken } = useAppContext();
 
     const logout = async () => {
         try {
             const { data } = await axios.get('/api/user/logout')
             if (data.success) {
                 toast.success(data.message);
+                setAuthToken(null);
                 setUser(null);
                 setCartItems({});
                 setProfileOpen(false);
@@ -27,8 +28,6 @@ const Navbar = () => {
         } catch (error) {
             toast.error(error.message);
         }
-
-
     };
 
     useEffect(() => {

@@ -28,9 +28,14 @@ export const AppContextProvider = ({ children }) => {
     const currency = import.meta.env.VITE_CURRENCY;
     const navigate = useNavigate();
     const initialToken = typeof window !== 'undefined' ? localStorage.getItem(LOCAL_TOKEN_KEY) : null;
-    const [token, setToken] = useState(initialToken);
+    const [token, setToken] = useState(() => {
+        if (initialToken === 'undefined' || initialToken === 'null') {
+            return null;
+        }
+        return initialToken;
+    });
 
-    if (token) {
+    if (token && token !== 'undefined' && token !== 'null') {
         axios.defaults.headers.common.Authorization = `Bearer ${token}`;
     } else {
         delete axios.defaults.headers.common.Authorization;
@@ -38,7 +43,7 @@ export const AppContextProvider = ({ children }) => {
 
     const setAuthToken = useCallback((newToken) => {
         if (typeof window === 'undefined') return;
-        if (newToken) {
+        if (newToken && newToken !== 'undefined' && newToken !== 'null') {
             localStorage.setItem(LOCAL_TOKEN_KEY, newToken);
             axios.defaults.headers.common.Authorization = `Bearer ${newToken}`;
             setToken(newToken);

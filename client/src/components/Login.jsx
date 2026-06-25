@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 const Login = () => {
 
-    const { setShowUserLogin, setUser, axios, navigate, refreshAppData } = useAppContext();
+    const { setShowUserLogin, setUser, axios, navigate, refreshAppData, setAuthToken } = useAppContext();
 
     const [state, setState] = React.useState("login");
     const [name, setName] = React.useState("");
@@ -18,6 +18,9 @@ const Login = () => {
                 name, email, password
             });
             if (data.success) {
+                if (data.token) {
+                    setAuthToken(data.token);
+                }
                 setUser(data.user);
                 await refreshAppData();
                 setShowUserLogin(false);
