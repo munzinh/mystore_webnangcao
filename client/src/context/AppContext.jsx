@@ -6,15 +6,16 @@ import axios from "axios";
 axios.defaults.withCredentials = true;
 
 const getBackendUrl = () => {
-    const configuredUrl = import.meta.env.VITE_BACKEND_URL;
-    if (!configuredUrl) return 'http://localhost:4000';
-    
-    // If frontend is accessed from another device (non-localhost) but backend URL points to localhost,
-    // dynamically swap 'localhost' with the current IP hostname of the server.
-    if (configuredUrl.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        return configuredUrl.replace('localhost', window.location.hostname);
+    const configuredUrl = import.meta.env.VITE_BACKEND_URL?.trim().replace(/^['"]|['"]$/g, '');
+
+    if (configuredUrl) return configuredUrl;
+
+    if (import.meta.env.PROD) {
+        // Frontend deployed separately on Vercel; backend is in a different Vercel app.
+        return 'https://mystore-webnangcao-backend.vercel.app';
     }
-    return configuredUrl;
+
+    return 'http://localhost:4000';
 };
 
 axios.defaults.baseURL = getBackendUrl();
